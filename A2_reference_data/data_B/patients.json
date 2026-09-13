@@ -1,0 +1,55 @@
+[
+  {
+    "patient_id": "P-1180",
+    "date_of_birth": "1968-03-14",
+    "existing_appointments": []
+  },
+  {
+    "patient_id": "P-1192",
+    "date_of_birth": "1955-11-02",
+    "existing_appointments": [
+      {
+        "specialty": "ORT",
+        "clinic": "ORT-C1",
+        "date": "2026-10-21"
+      }
+    ]
+  },
+  {
+    "patient_id": "P-1204",
+    "date_of_birth": "1981-07-25",
+    "existing_appointments": [
+      {
+        "specialty": "OPH",
+        "clinic": "OPH-C2",
+        "date": "2026-10-02"
+      }
+    ]
+  },
+  {
+    "patient_id": "P-1215",
+    "date_of_birth": "1974-01-09",
+    "existing_appointments": [
+      {
+        "specialty": "ORT",
+        "clinic": "ORT-C1",
+        "date": "2026-06-11"
+      }
+    ]
+  },
+  {
+    "patient_id": "P-1227",
+    "date_of_birth": "1992-09-30",
+    "existing_appointments": []
+  },
+  {
+    "patient_id": "P-1233",
+    "date_of_birth": "1949-05-18",
+    "existing_appointments": []
+  },
+  {
+    "patient_id": "P-1241",
+    "date_of_birth": "2001-12-06",
+    "existing_appointments": []
+  }
+]

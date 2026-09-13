@@ -1,0 +1,52 @@
+[
+  {
+    "code": "47120",
+    "description": "Laparoscopic appendicectomy",
+    "requires_preauth": false
+  },
+  {
+    "code": "31255",
+    "description": "Cosmetic dermabrasion",
+    "requires_preauth": false
+  },
+  {
+    "code": "62480",
+    "description": "Lumbar spinal fusion",
+    "requires_preauth": true
+  },
+  {
+    "code": "29881",
+    "description": "Knee arthroscopy",
+    "requires_preauth": true
+  },
+  {
+    "code": "70553",
+    "description": "MRI brain with contrast",
+    "requires_preauth": false
+  },
+  {
+    "code": "99213",
+    "description": "Outpatient consultation",
+    "requires_preauth": false
+  },
+  {
+    "code": "45378",
+    "description": "Diagnostic colonoscopy",
+    "requires_preauth": false
+  },
+  {
+    "code": "15823",
+    "description": "Blepharoplasty (cosmetic)",
+    "requires_preauth": false
+  },
+  {
+    "code": "27447",
+    "description": "Total knee replacement",
+    "requires_preauth": true
+  },
+  {
+    "code": "80053",
+    "description": "Comprehensive metabolic panel",
+    "requires_preauth": false
+  }
+]

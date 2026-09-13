@@ -1,0 +1,14 @@
+[
+  {
+    "procedure_code": "62480",
+    "document": "discharge_summary"
+  },
+  {
+    "procedure_code": "27447",
+    "document": "discharge_summary"
+  },
+  {
+    "procedure_code": "45378",
+    "document": "itemised_bill"
+  }
+]

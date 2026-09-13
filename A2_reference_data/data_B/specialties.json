@@ -1,0 +1,124 @@
+[
+  {
+    "code": "OPH",
+    "name": "Ophthalmology",
+    "mandatory_tests": [
+      {
+        "code": "VF-01",
+        "name": "visual field test"
+      }
+    ],
+    "red_flag_terms": [
+      "sudden visual loss",
+      "flashes and floaters",
+      "painful red eye",
+      "chemical splash"
+    ],
+    "treats": [
+      "eye",
+      "vision",
+      "visual",
+      "retina",
+      "cataract",
+      "glaucoma",
+      "eyelid"
+    ]
+  },
+  {
+    "code": "CARD",
+    "name": "Cardiology",
+    "mandatory_tests": [
+      {
+        "code": "ECG-12",
+        "name": "12-lead ECG"
+      },
+      {
+        "code": "BNP-01",
+        "name": "serum BNP"
+      }
+    ],
+    "red_flag_terms": [
+      "crushing chest pain",
+      "syncope on exertion",
+      "chest pain at rest"
+    ],
+    "treats": [
+      "heart",
+      "cardiac",
+      "chest",
+      "palpitations",
+      "breathlessness",
+      "murmur",
+      "blood pressure"
+    ]
+  },
+  {
+    "code": "ORT",
+    "name": "Orthopaedics",
+    "mandatory_tests": [
+      {
+        "code": "XR-KNEE",
+        "name": "weight-bearing knee X-ray"
+      }
+    ],
+    "red_flag_terms": [
+      "saddle anaesthesia",
+      "loss of bladder control",
+      "cauda equina"
+    ],
+    "treats": [
+      "knee",
+      "hip",
+      "joint",
+      "back",
+      "spine",
+      "fracture",
+      "shoulder"
+    ]
+  },
+  {
+    "code": "DER",
+    "name": "Dermatology",
+    "mandatory_tests": [],
+    "red_flag_terms": [
+      "rapidly growing pigmented lesion",
+      "ulcerating lesion"
+    ],
+    "treats": [
+      "skin",
+      "rash",
+      "lesion",
+      "mole",
+      "eczema",
+      "psoriasis"
+    ]
+  },
+  {
+    "code": "ENT",
+    "name": "Ear, nose and throat",
+    "mandatory_tests": [
+      {
+        "code": "AUD-01",
+        "name": "pure-tone audiogram"
+      },
+      {
+        "code": "NASO-02",
+        "name": "nasendoscopy report"
+      }
+    ],
+    "red_flag_terms": [
+      "unilateral neck lump",
+      "stridor",
+      "persistent hoarseness over six weeks"
+    ],
+    "treats": [
+      "ear",
+      "hearing",
+      "nose",
+      "sinus",
+      "throat",
+      "tonsil",
+      "voice"
+    ]
+  }
+]

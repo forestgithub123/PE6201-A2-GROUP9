@@ -1,0 +1,178 @@
+[
+  {
+    "clinic": "OPH-C1",
+    "specialty": "OPH",
+    "band": "urgent",
+    "date": "2026-09-15",
+    "time": "09:40",
+    "capacity_remaining": 1
+  },
+  {
+    "clinic": "OPH-C1",
+    "specialty": "OPH",
+    "band": "urgent",
+    "date": "2026-09-22",
+    "time": "10:00",
+    "capacity_remaining": 1
+  },
+  {
+    "clinic": "OPH-C2",
+    "specialty": "OPH",
+    "band": "routine",
+    "date": "2026-09-23",
+    "time": "11:20",
+    "capacity_remaining": 0
+  },
+  {
+    "clinic": "OPH-C2",
+    "specialty": "OPH",
+    "band": "routine",
+    "date": "2026-09-30",
+    "time": "11:20",
+    "capacity_remaining": 0
+  },
+  {
+    "clinic": "OPH-C2",
+    "specialty": "OPH",
+    "band": "routine",
+    "date": "2026-10-14",
+    "time": "11:20",
+    "capacity_remaining": 2
+  },
+  {
+    "clinic": "OPH-C2",
+    "specialty": "OPH",
+    "band": "routine",
+    "date": "2026-10-14",
+    "time": "14:00",
+    "capacity_remaining": 1
+  },
+  {
+    "clinic": "OPH-C2",
+    "specialty": "OPH",
+    "band": "routine",
+    "date": "2026-10-28",
+    "time": "09:00",
+    "capacity_remaining": 3
+  },
+  {
+    "clinic": "CARD-C1",
+    "specialty": "CARD",
+    "band": "urgent",
+    "date": "2026-09-16",
+    "time": "08:30",
+    "capacity_remaining": 1
+  },
+  {
+    "clinic": "CARD-C1",
+    "specialty": "CARD",
+    "band": "urgent",
+    "date": "2026-09-18",
+    "time": "15:00",
+    "capacity_remaining": 2
+  },
+  {
+    "clinic": "CARD-C2",
+    "specialty": "CARD",
+    "band": "routine",
+    "date": "2026-10-21",
+    "time": "10:00",
+    "capacity_remaining": 4
+  },
+  {
+    "clinic": "ORT-C2",
+    "specialty": "ORT",
+    "band": "urgent",
+    "date": "2026-09-17",
+    "time": "14:40",
+    "capacity_remaining": 1
+  },
+  {
+    "clinic": "ORT-C1",
+    "specialty": "ORT",
+    "band": "routine",
+    "date": "2026-10-07",
+    "time": "09:20",
+    "capacity_remaining": 2
+  },
+  {
+    "clinic": "ORT-C1",
+    "specialty": "ORT",
+    "band": "routine",
+    "date": "2026-10-21",
+    "time": "11:00",
+    "capacity_remaining": 3
+  },
+  {
+    "clinic": "DER-C1",
+    "specialty": "DER",
+    "band": "routine",
+    "date": "2026-09-30",
+    "time": "10:40",
+    "capacity_remaining": 3
+  },
+  {
+    "clinic": "DER-C1",
+    "specialty": "DER",
+    "band": "routine",
+    "date": "2026-10-19",
+    "time": "09:00",
+    "capacity_remaining": 2
+  },
+  {
+    "clinic": "OPH-C3",
+    "specialty": "OPH",
+    "band": "soon",
+    "date": "2026-09-29",
+    "time": "10:00",
+    "capacity_remaining": 2
+  },
+  {
+    "clinic": "CARD-C3",
+    "specialty": "CARD",
+    "band": "soon",
+    "date": "2026-09-25",
+    "time": "09:30",
+    "capacity_remaining": 2
+  },
+  {
+    "clinic": "ORT-C3",
+    "specialty": "ORT",
+    "band": "soon",
+    "date": "2026-09-28",
+    "time": "15:00",
+    "capacity_remaining": 1
+  },
+  {
+    "clinic": "DER-C2",
+    "specialty": "DER",
+    "band": "soon",
+    "date": "2026-09-24",
+    "time": "11:00",
+    "capacity_remaining": 2
+  },
+  {
+    "clinic": "ENT-C2",
+    "specialty": "ENT",
+    "band": "soon",
+    "date": "2026-10-06",
+    "time": "14:00",
+    "capacity_remaining": 1
+  },
+  {
+    "clinic": "ENT-C1",
+    "specialty": "ENT",
+    "band": "routine",
+    "date": "2026-10-21",
+    "time": "13:20",
+    "capacity_remaining": 2
+  },
+  {
+    "clinic": "ENT-C1",
+    "specialty": "ENT",
+    "band": "routine",
+    "date": "2026-11-10",
+    "time": "09:40",
+    "capacity_remaining": 2
+  }
+]

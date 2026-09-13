@@ -1,0 +1,485 @@
+[
+  {
+    "file": "data_A/claims.json",
+    "field": "claim_id",
+    "type": "str",
+    "means": "Unique id for this claim. **Not** how a duplicate is detected — a resubmission arrives with a new one.",
+    "example": "\"CLM-8842\""
+  },
+  {
+    "file": "data_A/claims.json",
+    "field": "member_id",
+    "type": "str",
+    "means": "Who was treated. Join to `members.json` to reach their policy.",
+    "example": "\"M-2214\""
+  },
+  {
+    "file": "data_A/claims.json",
+    "field": "hospital_id",
+    "type": "str",
+    "means": "Where they were treated. Join to `hospitals.json` for panel status.",
+    "example": "\"H-114\""
+  },
+  {
+    "file": "data_A/claims.json",
+    "field": "date_of_service",
+    "type": "str",
+    "means": "When treatment happened. Tested against the policy's start/end dates and against any pre-authorisation window.",
+    "example": "\"2026-09-02\""
+  },
+  {
+    "file": "data_A/claims.json",
+    "field": "narrative",
+    "type": "str",
+    "means": "Free text written by the member. Useful context — and the one field on this row an outsider controls, so treat it as untrusted input.",
+    "example": "\"Admitted for appendix removal. Surgeon als…"
+  },
+  {
+    "file": "data_A/claims.json",
+    "field": "documents",
+    "type": "list[str]",
+    "means": "Documents actually attached to this claim. Compare against `required_documents.json` for the procedures claimed.",
+    "example": "[\"itemised_bill\", \"discharge_summary\"]"
+  },
+  {
+    "file": "data_A/claims.json",
+    "field": "lines",
+    "type": "list[{code, amount}]",
+    "means": "**One entry per procedure claimed** — each with a `code` and the `amount` in dollars. Most claims have one line; several have three or four, and every line must be decided separately.",
+    "example": "[{\"code\": \"47120\", \"amount\": 1400}, {\"code\"…"
+  },
+  {
+    "file": "data_A/members.json",
+    "field": "member_id",
+    "type": "str",
+    "means": "The id a claim points at.",
+    "example": "\"M-2214\""
+  },
+  {
+    "file": "data_A/members.json",
+    "field": "name",
+    "type": "str",
+    "means": "Display name. Carries no decision information.",
+    "example": "\"Tan Wei Ling\""
+  },
+  {
+    "file": "data_A/members.json",
+    "field": "policy_id",
+    "type": "str",
+    "means": "The join onward to `policies.json`. This is the only field on this row that matters to a decision.",
+    "example": "\"POL-3310\""
+  },
+  {
+    "file": "data_A/members.json",
+    "field": "join_date",
+    "type": "str",
+    "means": "When they joined. Not a coverage date — the policy's own dates govern.",
+    "example": "\"2024-04-01\""
+  },
+  {
+    "file": "data_A/policies.json",
+    "field": "policy_id",
+    "type": "str",
+    "means": "The id a member points at.",
+    "example": "\"POL-3310\""
+  },
+  {
+    "file": "data_A/policies.json",
+    "field": "product",
+    "type": "str",
+    "means": "Plan name. Cosmetic; the rules are in the other fields.",
+    "example": "\"Shield Plus\""
+  },
+  {
+    "file": "data_A/policies.json",
+    "field": "status",
+    "type": "str",
+    "means": "`active` or `lapsed`. A lapsed policy ends the run — nothing further needs checking.",
+    "example": "\"active\""
+  },
+  {
+    "file": "data_A/policies.json",
+    "field": "start_date",
+    "type": "str",
+    "means": "Cover begins. A date of service before this is not covered even if the status says active.",
+    "example": "\"2026-04-01\""
+  },
+  {
+    "file": "data_A/policies.json",
+    "field": "end_date",
+    "type": "str",
+    "means": "Cover ends.",
+    "example": "\"2027-03-31\""
+  },
+  {
+    "file": "data_A/policies.json",
+    "field": "annual_limit",
+    "type": "int",
+    "means": "Total the policy will pay in the year, in dollars.",
+    "example": "12000"
+  },
+  {
+    "file": "data_A/policies.json",
+    "field": "used_to_date",
+    "type": "int",
+    "means": "Already spent this year. **`annual_limit` − `used_to_date` is the headroom**, and the claim total is tested against that, not against the limit.",
+    "example": "2800"
+  },
+  {
+    "file": "data_A/policies.json",
+    "field": "exclusions",
+    "type": "list[{code, rule}]",
+    "means": "Procedure codes this product never pays for, each with the `rule` id to cite. One excluded line does not refuse the whole claim — it refuses that line.",
+    "example": "[{\"code\": \"31255\", \"rule\": \"EX-14 cosmetic…"
+  },
+  {
+    "file": "data_A/procedures.json",
+    "field": "code",
+    "type": "str",
+    "means": "The procedure code that a claim line refers to.",
+    "example": "\"47120\""
+  },
+  {
+    "file": "data_A/procedures.json",
+    "field": "description",
+    "type": "str",
+    "means": "What the code means, in words. For your decision record, not for the logic.",
+    "example": "\"Laparoscopic appendicectomy\""
+  },
+  {
+    "file": "data_A/procedures.json",
+    "field": "requires_preauth",
+    "type": "bool",
+    "means": "**The branch.** `true` means look for a pre-authorisation; `false` means do not. This single boolean is why the run length varies between claims.",
+    "example": "false"
+  },
+  {
+    "file": "data_A/preauthorisations.json",
+    "field": "preauth_id",
+    "type": "str",
+    "means": "The id to cite in the decision record when an approval is found.",
+    "example": "\"PA-5521\""
+  },
+  {
+    "file": "data_A/preauthorisations.json",
+    "field": "member_id",
+    "type": "str",
+    "means": "Half of the match. An approval belongs to one member.",
+    "example": "\"M-2214\""
+  },
+  {
+    "file": "data_A/preauthorisations.json",
+    "field": "procedure_code",
+    "type": "str",
+    "means": "The other half. Both must match, plus the dates.",
+    "example": "\"62480\""
+  },
+  {
+    "file": "data_A/preauthorisations.json",
+    "field": "valid_from",
+    "type": "str",
+    "means": "Approval window opens. The claim's `date_of_service` must be on or after this.",
+    "example": "\"2026-08-01\""
+  },
+  {
+    "file": "data_A/preauthorisations.json",
+    "field": "valid_to",
+    "type": "str",
+    "means": "Approval window closes. On or before this. Outside the window, the approval does not apply.",
+    "example": "\"2026-10-31\""
+  },
+  {
+    "file": "data_A/hospitals.json",
+    "field": "hospital_id",
+    "type": "str",
+    "means": "The id a claim points at.",
+    "example": "\"H-114\""
+  },
+  {
+    "file": "data_A/hospitals.json",
+    "field": "name",
+    "type": "str",
+    "means": "Display name.",
+    "example": "\"Riverside General\""
+  },
+  {
+    "file": "data_A/hospitals.json",
+    "field": "panel",
+    "type": "bool",
+    "means": "`true` = inside the insurer's network. `false` changes the outcome and must be recorded.",
+    "example": "true"
+  },
+  {
+    "file": "data_A/hospitals.json",
+    "field": "country",
+    "type": "str",
+    "means": "Where the hospital is. All shipped rows are `SG`.",
+    "example": "\"SG\""
+  },
+  {
+    "file": "data_A/required_documents.json",
+    "field": "procedure_code",
+    "type": "str",
+    "means": "The procedure that triggers the requirement.",
+    "example": "\"62480\""
+  },
+  {
+    "file": "data_A/required_documents.json",
+    "field": "document",
+    "type": "str",
+    "means": "The document that must be present. Compare with the claim's `documents` list; a missing one is an *ask*, not a refusal.",
+    "example": "\"discharge_summary\""
+  },
+  {
+    "file": "data_A/decided_claims.json",
+    "field": "claim_id",
+    "type": "str",
+    "means": "The id of the earlier claim — cite it in your record. Matching does **not** use it; a resubmission arrives with a new id.",
+    "example": "\"CLM-8710\""
+  },
+  {
+    "file": "data_A/decided_claims.json",
+    "field": "member_id",
+    "type": "str",
+    "means": "Part of the duplicate match. One row here differs from a queued claim on this field alone.",
+    "example": "\"M-2214\""
+  },
+  {
+    "file": "data_A/decided_claims.json",
+    "field": "hospital_id",
+    "type": "str",
+    "means": "Part of the duplicate match.",
+    "example": "\"H-114\""
+  },
+  {
+    "file": "data_A/decided_claims.json",
+    "field": "date_of_service",
+    "type": "str",
+    "means": "Part of the duplicate match. One row here differs from a queued claim on this field alone.",
+    "example": "\"2026-08-20\""
+  },
+  {
+    "file": "data_A/decided_claims.json",
+    "field": "lines",
+    "type": "list[{code, amount}]",
+    "means": "Part of the duplicate match, and the one most often skipped. **Same member + same hospital + same date + same lines = the same episode**, whatever the claim id says. One row here shares all three other facts with a queued claim and differs only in its lines — that claim is *not* a duplicate.",
+    "example": "[{\"code\": \"47120\", \"amount\": 1500}]"
+  },
+  {
+    "file": "data_A/decided_claims.json",
+    "field": "decision",
+    "type": "str",
+    "means": "What was decided the first time round.",
+    "example": "\"approve_in_principle\""
+  },
+  {
+    "file": "data_A/decided_claims.json",
+    "field": "decided_on",
+    "type": "str",
+    "means": "When it was decided.",
+    "example": "\"2026-08-22\""
+  },
+  {
+    "file": "data_B/referrals.json",
+    "field": "referral_id",
+    "type": "str",
+    "means": "Unique id for this referral.",
+    "example": "\"REF-5590\""
+  },
+  {
+    "file": "data_B/referrals.json",
+    "field": "patient_id",
+    "type": "str",
+    "means": "Who is being referred. Joins to **both** `patients.json` and `contacts.json` — they share this key.",
+    "example": "\"P-1192\""
+  },
+  {
+    "file": "data_B/referrals.json",
+    "field": "referring_clinic",
+    "type": "str",
+    "means": "Which GP practice sent it. Context for the record; carries no rule.",
+    "example": "\"Bedok Family Practice\""
+  },
+  {
+    "file": "data_B/referrals.json",
+    "field": "specialty",
+    "type": "str",
+    "means": "Which department it was sent to, as a code. Joins to `specialties.json`, and is half the key into `clinic_slots.json`.",
+    "example": "\"OPH\""
+  },
+  {
+    "file": "data_B/referrals.json",
+    "field": "date_received",
+    "type": "str",
+    "means": "When the referral arrived. **Windows are counted from `as_of.json`, not from this field** — a common and silent mistake.",
+    "example": "\"2026-09-08\""
+  },
+  {
+    "file": "data_B/referrals.json",
+    "field": "clinical_summary",
+    "type": "str",
+    "means": "**The GP's free text, and the most important field in Problem B.** Two decisions come out of it and out of nothing else: whether a red-flag term appears, and which urgency band applies. It is also written by someone outside your organisation, so it is untrusted input.",
+    "example": "\"Sudden visual loss in the right eye on wak…"
+  },
+  {
+    "file": "data_B/referrals.json",
+    "field": "tests_attached",
+    "type": "list[str]",
+    "means": "Test codes actually attached. Compare against the specialty's `mandatory_tests`; anything missing makes this a request, not a booking.",
+    "example": "[\"VF-01\"]"
+  },
+  {
+    "file": "data_B/referrals.json",
+    "field": "tests_attached_on",
+    "type": "str · **optional** (12 of 15 rows)",
+    "means": "When the tests were done. **Absent on some rows** — absence means no test was attached, so your loader must not assume the key exists.",
+    "example": "\"2026-09-05\""
+  },
+  {
+    "file": "data_B/specialties.json",
+    "field": "code",
+    "type": "str",
+    "means": "The specialty code a referral names.",
+    "example": "\"OPH\""
+  },
+  {
+    "file": "data_B/specialties.json",
+    "field": "name",
+    "type": "str",
+    "means": "Full department name, for the record.",
+    "example": "\"Ophthalmology\""
+  },
+  {
+    "file": "data_B/specialties.json",
+    "field": "mandatory_tests",
+    "type": "list[{code, name}]",
+    "means": "Tests that must be attached before a booking is allowed, each with a `code` and a readable `name`. Missing one ends the run as a request for information.",
+    "example": "[{\"code\": \"VF-01\", \"name\": \"visual field te…"
+  },
+  {
+    "file": "data_B/specialties.json",
+    "field": "red_flag_terms",
+    "type": "list[str]",
+    "means": "Phrases that mean **stop and escalate immediately**. Checked against `clinical_summary`. A red flag outranks everything else, including an available slot.",
+    "example": "[\"sudden visual loss\", \"flashes and floater…"
+  },
+  {
+    "file": "data_B/specialties.json",
+    "field": "treats",
+    "type": "list[str]",
+    "means": "Body words this department handles. Used to tell whether a referral reached the right department at all.",
+    "example": "[\"eye\", \"vision\", \"visual\", \"retina\", \"cata…"
+  },
+  {
+    "file": "data_B/urgency_bands.json",
+    "field": "band",
+    "type": "str",
+    "means": "`urgent`, `soon` or `routine`. Also half the key into `clinic_slots.json`.",
+    "example": "\"urgent\""
+  },
+  {
+    "file": "data_B/urgency_bands.json",
+    "field": "window_weeks",
+    "type": "int",
+    "means": "How many weeks from `as_of` the appointment must fall inside. Urgent 2, soon 4, routine 8.",
+    "example": "2"
+  },
+  {
+    "file": "data_B/urgency_bands.json",
+    "field": "trigger_terms",
+    "type": "list[str]",
+    "means": "Phrases in `clinical_summary` that put a referral in this band. No trigger found means the routine band.",
+    "example": "[\"worsening over days\", \"rapidly worsening\"…"
+  },
+  {
+    "file": "data_B/clinic_slots.json",
+    "field": "clinic",
+    "type": "str",
+    "means": "The clinic offering the slot. Record this on a booking.",
+    "example": "\"OPH-C1\""
+  },
+  {
+    "file": "data_B/clinic_slots.json",
+    "field": "specialty",
+    "type": "str",
+    "means": "Which department the slot belongs to. Half the lookup key.",
+    "example": "\"OPH\""
+  },
+  {
+    "file": "data_B/clinic_slots.json",
+    "field": "band",
+    "type": "str",
+    "means": "Which urgency band the slot serves. The other half. **A routine slot cannot take an urgent referral**, even if the date fits.",
+    "example": "\"urgent\""
+  },
+  {
+    "file": "data_B/clinic_slots.json",
+    "field": "date",
+    "type": "str",
+    "means": "Slot date. Must fall inside the window measured from `as_of`.",
+    "example": "\"2026-09-15\""
+  },
+  {
+    "file": "data_B/clinic_slots.json",
+    "field": "time",
+    "type": "str",
+    "means": "Slot time. Record it on a booking.",
+    "example": "\"09:40\""
+  },
+  {
+    "file": "data_B/clinic_slots.json",
+    "field": "capacity_remaining",
+    "type": "int",
+    "means": "Places left. **`0` means full, not missing** — the slot exists and cannot be booked. Take the first slot with a value above zero.",
+    "example": "1"
+  },
+  {
+    "file": "data_B/patients.json",
+    "field": "patient_id",
+    "type": "str",
+    "means": "The id a referral points at.",
+    "example": "\"P-1180\""
+  },
+  {
+    "file": "data_B/patients.json",
+    "field": "date_of_birth",
+    "type": "str",
+    "means": "For the record. No rule depends on it.",
+    "example": "\"1968-03-14\""
+  },
+  {
+    "file": "data_B/patients.json",
+    "field": "existing_appointments",
+    "type": "list[{specialty, clinic, date}]",
+    "means": "What this patient already has booked, each with `specialty`, `clinic` and `date`. **A duplicate needs both: the same specialty AND a date in the future.** A past appointment in the same specialty is not a duplicate. An empty list is normal.",
+    "example": "[{\"specialty\": \"ORT\", \"clinic\": \"ORT-C1\", \"…"
+  },
+  {
+    "file": "data_B/contacts.json",
+    "field": "patient_id",
+    "type": "str",
+    "means": "The id a referral points at — the same key as `patients.json`, reached directly from the referral.",
+    "example": "\"P-1180\""
+  },
+  {
+    "file": "data_B/contacts.json",
+    "field": "method",
+    "type": "str",
+    "means": "Preferred channel: `sms`, `phone` or `email`. Record which one you would use.",
+    "example": "\"sms\""
+  },
+  {
+    "file": "data_B/contacts.json",
+    "field": "value",
+    "type": "str",
+    "means": "The masked address or number. Masked deliberately; you are recording an intent to contact, not sending anything.",
+    "example": "\"+65 8••• ••21\""
+  },
+  {
+    "file": "data_B/as_of.json",
+    "field": "as_of",
+    "type": "str",
+    "means": "**Today, for Problem B.** Every urgency window is counted forward from this date.",
+    "example": "\"2026-09-09\""
+  }
+]

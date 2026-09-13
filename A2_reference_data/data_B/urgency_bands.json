@@ -1,0 +1,27 @@
+[
+  {
+    "band": "urgent",
+    "window_weeks": 2,
+    "trigger_terms": [
+      "worsening over days",
+      "rapidly worsening",
+      "acute onset",
+      "two-week wait",
+      "suspected malignancy"
+    ]
+  },
+  {
+    "band": "soon",
+    "window_weeks": 4,
+    "trigger_terms": [
+      "progressive over weeks",
+      "not responding to treatment",
+      "recurrent"
+    ]
+  },
+  {
+    "band": "routine",
+    "window_weeks": 8,
+    "trigger_terms": []
+  }
+]

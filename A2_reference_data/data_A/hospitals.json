@@ -1,0 +1,26 @@
+[
+  {
+    "hospital_id": "H-114",
+    "name": "Riverside General",
+    "panel": true,
+    "country": "SG"
+  },
+  {
+    "hospital_id": "H-207",
+    "name": "Mount Elizabeth East",
+    "panel": true,
+    "country": "SG"
+  },
+  {
+    "hospital_id": "H-330",
+    "name": "Bayfront Specialist",
+    "panel": false,
+    "country": "SG"
+  },
+  {
+    "hospital_id": "H-451",
+    "name": "Penang Medical",
+    "panel": false,
+    "country": "MY"
+  }
+]

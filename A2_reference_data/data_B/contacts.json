@@ -1,0 +1,37 @@
+[
+  {
+    "patient_id": "P-1180",
+    "method": "sms",
+    "value": "+65 8••• ••21"
+  },
+  {
+    "patient_id": "P-1192",
+    "method": "phone",
+    "value": "+65 6••• ••04"
+  },
+  {
+    "patient_id": "P-1204",
+    "method": "email",
+    "value": "p1204@example.test"
+  },
+  {
+    "patient_id": "P-1215",
+    "method": "sms",
+    "value": "+65 9••• ••77"
+  },
+  {
+    "patient_id": "P-1227",
+    "method": "email",
+    "value": "p1227@example.test"
+  },
+  {
+    "patient_id": "P-1233",
+    "method": "phone",
+    "value": "+65 6••• ••39"
+  },
+  {
+    "patient_id": "P-1241",
+    "method": "sms",
+    "value": "+65 8••• ••55"
+  }
+]

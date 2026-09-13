@@ -1,0 +1,58 @@
+[
+  {
+    "claim_id": "CLM-8710",
+    "member_id": "M-2214",
+    "hospital_id": "H-114",
+    "date_of_service": "2026-08-20",
+    "lines": [
+      {
+        "code": "47120",
+        "amount": 1500
+      }
+    ],
+    "decision": "approve_in_principle",
+    "decided_on": "2026-08-22"
+  },
+  {
+    "claim_id": "CLM-8702",
+    "member_id": "M-5502",
+    "hospital_id": "H-207",
+    "date_of_service": "2026-09-02",
+    "lines": [
+      {
+        "code": "99213",
+        "amount": 180
+      }
+    ],
+    "decision": "approve_in_principle",
+    "decided_on": "2026-09-03"
+  },
+  {
+    "claim_id": "CLM-8726",
+    "member_id": "M-5502",
+    "hospital_id": "H-114",
+    "date_of_service": "2026-09-15",
+    "lines": [
+      {
+        "code": "45378",
+        "amount": 1100
+      }
+    ],
+    "decision": "approve_in_principle",
+    "decided_on": "2026-09-16"
+  },
+  {
+    "claim_id": "CLM-8688",
+    "member_id": "M-6118",
+    "hospital_id": "H-207",
+    "date_of_service": "2026-07-28",
+    "lines": [
+      {
+        "code": "29881",
+        "amount": 1900
+      }
+    ],
+    "decision": "decline",
+    "decided_on": "2026-07-30"
+  }
+]

@@ -2,6 +2,8 @@
 
 Coursework repository for NTU PE6201 Assignment 2: Applied AI System.
 
+This project is under active development.
+
 ## Repository structure
 
 - `A2_scaffold/`: Python single-agent ReAct loop, tools, guardrails, backends,
@@ -19,6 +21,7 @@ The scaffold uses only the Python standard library.
 ```bash
 cd A2_scaffold
 python3 run_eval.py --prompt
+python3 run_eval.py
 ```
 
 Reference data is discovered automatically when `A2_reference_data/` is next
@@ -26,9 +29,7 @@ to `A2_scaffold/`. Set `A2_DATA` if the data directory is stored elsewhere.
 
 The backend and selected assignment problem are configured in
 `A2_scaffold/config.py`. The live backend requires `OPENROUTER_API_KEY` in the
-environment before running `python3 run_eval.py`; API keys must never be
-committed to this repository. Set `BACKEND = "scripted"` for deterministic,
-offline evaluation.
+environment; API keys must never be committed to this repository.
 
 ## Validate reference data
 

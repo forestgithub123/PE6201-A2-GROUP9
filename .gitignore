@@ -1,0 +1,4 @@
+# Local OS, Python, and Office temporary files
+.DS_Store
+__pycache__/
+~$*

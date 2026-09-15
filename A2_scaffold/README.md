@@ -53,6 +53,10 @@ rather than guessing.
 | `prompt.py` | Assembles the descriptors + routing rules into the text the model is sent | **Yes** — this is D2(b) |
 | `run_eval.py` | Entry point. **This is what a marker runs** | Rarely |
 | `demo_loop_failure.py` | D7's method, worked once on the scripted backend | Copy the method |
+| `guardrail_tests.py` | D3(b): 11 guardrail cases (3 adversarial narratives), scripted, free | Add cases as you find new failure modes |
+| `dev_seq_vs_parallel.py` | D2(c): sequential vs parallel, scripted (tokens/cost are simulated, not real - see the file) | Reference implementation, extend if you script more cases |
+| `dev_v1_v2_compare.py` | D2(b): v1/v2 prompt comparison on the LIVE backend, via `agent.run_case(..., prompt_version=...)` | Rerun per model for D5(b)/D6 |
+| `docs/D2_tool_layer.md`, `docs/D3_guardrails.md` | The D2/D3 written deliverables - decisions, evidence, repro commands | Read first |
 | `A2_Scaffold_Tour_ProblemA.ipynb` | Guided walk-through of one claim, `CLM-8842` | Read once |
 | `A2_Scaffold_Tour_ProblemB.ipynb` | Guided walk-through of one referral, `REF-5602` | Read once |
 

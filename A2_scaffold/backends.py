@@ -26,6 +26,7 @@ moves is how you test the parts you wrote.
 ====================================================================
 """
 import json
+import ssl
 import urllib.request
 
 import config
@@ -101,13 +102,7 @@ SCRIPTS = {
                     "check PER LINE - three lines, three checks. All independent, "
                     "so one turn.",
          "calls": [("lookup_policy", {"member_id": "M-2214"}),
-                   ("check_duplicate_claim", {
-                       "member_id": "M-2214",
-                       "hospital_id": "H-114",
-                       "date_of_service": "2026-09-02",
-                       "lines": [{"code": "47120", "amount": 1400},
-                                 {"code": "62480", "amount": 780},
-                                 {"code": "31255", "amount": 300}]}),
+                   ("check_duplicate_claim", {"claim_id": "CLM-8842"}),
                    ("check_coverage", {"code": "47120", "member_id": "M-2214",
                                        "attached_documents": ["itemised_bill",
                                                               "discharge_summary"]}),
@@ -210,30 +205,47 @@ class LiveBackend:
         self.case_id = case_id
         self.tools = tool_descriptors
         self.system_prompt = system_prompt
+        self._last_usage = (0, 0)
 
     def next_move(self, transcript):
         messages = [{"role": "system", "content": self.system_prompt}]
         for entry in transcript:
             messages.append({"role": entry["role"], "content": entry["content"]})
-        raw = _live_call(messages)
+        raw, usage = _live_call(messages)
+        self._last_usage = usage
         return _parse_move(raw)
 
-    @staticmethod
-    def token_estimate(transcript):
-        # Replace with the usage numbers the API returns. Estimating here
-        # and calling it measured is the mistake D6 punishes.
-        return 0, 0
+    def token_estimate(self, transcript):
+        # MEASURED, not estimated: the (prompt_tokens, completion_tokens)
+        # the API returned for the call `next_move` just made. D6 punishes
+        # estimating here and calling it measured.
+        return self._last_usage
 
 
 def _parse_move(text):
     """The model must answer in JSON. Anything else is a run you cannot
     grade, so say so loudly rather than guessing."""
     try:
-        return json.loads(text)
+        move = json.loads(text)
     except json.JSONDecodeError:
         return {"final": {"decision": "escalate",
                           "reason": "model did not return parseable JSON"},
                 "thought": "unparseable: %s" % text[:200]}
+    # Valid JSON is not the same as a valid MOVE. A dict lacking "final", a
+    # non-empty "calls" list, or "tool"/"args" is not an action the agent
+    # loop understands - treat it the same as unparseable rather than
+    # letting agent.py crash on a KeyError deep in the loop. An empty
+    # "calls": [] is the shape that slips past a looser check: truthy as a
+    # dict key, falsy as a list, and agent.py falls through to move["tool"]
+    # which was never there.
+    if not isinstance(move, dict) or not (
+            "final" in move
+            or (isinstance(move.get("calls"), list) and move["calls"])
+            or ("tool" in move and "args" in move)):
+        return {"final": {"decision": "escalate",
+                          "reason": "model returned JSON in an unrecognised shape"},
+                "thought": "unrecognised shape: %s" % text[:200]}
+    return move
 
 
 def _live_call(messages):
@@ -245,8 +257,8 @@ def _live_call(messages):
     """
     if not config.API_KEY:
         raise SystemExit(
-            "\n  BACKEND is 'live' but OPENROUTER_API_KEY is not set.\n"
-            "    export OPENROUTER_API_KEY='sk-or-...'\n"
+            "\n  BACKEND is 'live' but no API key is set.\n"
+            "    set A2_API_KEY, OPENROUTER_API_KEY, or DEEPSEEK_API_KEY\n"
             "  Or set BACKEND = 'scripted' in config.py, which is free.\n")
     body = json.dumps({
     "model": config.MODEL,
@@ -259,9 +271,18 @@ def _live_call(messages):
         data=body,
         headers={"Authorization": "Bearer " + config.API_KEY,
                  "Content-Type": "application/json"})
-    with urllib.request.urlopen(req, timeout=60) as r:
+    # Python.org builds on macOS do not always discover the system CA bundle.
+    # Use the standard macOS bundle when it is available, while keeping the
+    # request TLS-verified (never disable certificate verification).
+    try:
+        ssl_context = ssl.create_default_context(cafile="/etc/ssl/cert.pem")
+    except (FileNotFoundError, OSError):
+        ssl_context = ssl.create_default_context()
+    with urllib.request.urlopen(req, timeout=60, context=ssl_context) as r:
         payload = json.load(r)
-    return payload["choices"][0]["message"]["content"]
+    usage = payload.get("usage") or {}
+    tokens = (usage.get("prompt_tokens", 0), usage.get("completion_tokens", 0))
+    return payload["choices"][0]["message"]["content"], tokens
 
 
 def make_backend(case_id, tool_descriptors=None, system_prompt=""):

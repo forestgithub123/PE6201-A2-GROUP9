@@ -1,0 +1,49 @@
+{
+  "caveat": "tokens/cost are the SCRIPTED backend's simulated estimate (backends.ScriptedBackend.token_estimate), not measured usage. Valid for comparing the sequential-vs-parallel MECHANISM (turn growth, which guardrail fires); NOT a real cost figure - do not feed these numbers into D6's cost model. D6 needs measured tokens from the live battery (dev_v1_v2_compare.py).",
+  "rows": [
+    {
+      "label": "parallel (shipped, MAX_TURNS=8)",
+      "turns": 4,
+      "calls_executed": 9,
+      "tokens_in": 24000,
+      "tokens_out": 600,
+      "tokens_total": 24600,
+      "cost_usd": 0.00264,
+      "decision": "approve_in_principle",
+      "stopped_by": null
+    },
+    {
+      "label": "sequential, one call per turn (MAX_TURNS=8, current default)",
+      "turns": 8,
+      "calls_executed": 8,
+      "tokens_in": 64800,
+      "tokens_out": 1080,
+      "tokens_total": 65880,
+      "cost_usd": 0.006912,
+      "decision": "escalate",
+      "stopped_by": "budget_ceiling"
+    },
+    {
+      "label": "sequential, one call per turn (MAX_TURNS=12, artificially raised)",
+      "turns": 8,
+      "calls_executed": 8,
+      "tokens_in": 64800,
+      "tokens_out": 1080,
+      "tokens_total": 65880,
+      "cost_usd": 0.006912,
+      "decision": "escalate",
+      "stopped_by": "budget_ceiling"
+    },
+    {
+      "label": "sequential, one call per turn (both caps raised, run to completion)",
+      "turns": 9,
+      "calls_executed": 9,
+      "tokens_in": 78000,
+      "tokens_out": 1200,
+      "tokens_total": 79200,
+      "cost_usd": 0.00828,
+      "decision": "approve_in_principle",
+      "stopped_by": null
+    }
+  ]
+}

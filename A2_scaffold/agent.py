@@ -32,16 +32,59 @@ import tools
 from backends import make_backend
 from guardrails import Guardrails, GuardrailStop
 
-MAX_FINAL_REJECTIONS = 4
+# Raised from 4 to 6 after live evidence (dev_v1_v2_compare.py, v2,
+# CLM-8842 trial 1): the stricter validation added for D2(b) (required
+# trigger/missing, evidence-checked escalate triggers) catches more real
+# mistakes, which is the point, but each catch spends one of this budget -
+# and a legitimate multi-step Problem A completion (lookup_policy ->
+# hospital -> duplicate -> coverage x N -> preauth -> issue) can need two
+# or three corrective round-trips even from a MODEL THAT EVENTUALLY GETS
+# IT RIGHT. Observed: the same case failed here once (4 rejections, capped)
+# and succeeded on an immediate retry (2 rejections) - not a code bug, a
+# retry-budget bug. Each round-trip costs a few hundred tokens; the fix is
+# cheaper than the false failures it was causing.
+MAX_FINAL_REJECTIONS = 6
+
+# A decision LABEL is not a tool, but a weak model sometimes tries to "call"
+# one - {"calls": [["request_document", {...}]]} - instead of putting it in
+# {"final": {"decision": ...}}. Left alone this burns a turn on an unknown-
+# tool error, then a second identical attempt trips the duplicate-action
+# guardrail, and the run ends in a generic escalate with no trigger - a
+# guardrail-shaped failure that is really a shape-confusion in the model's
+# output. Caught here it costs a corrective message instead of the run.
+DECISION_LABELS = {
+    "approve_in_principle", "request_document", "escalate",
+    "request_information", "book",
+}
+
+# THE D2(b) v1/v2 TOGGLE. True = the current, improved validation (required
+# trigger/missing, evidence-checked escalate triggers, the decision-label
+# corrective path below). False reproduces the ORIGINAL scaffold's runtime
+# behaviour exactly, so dev_v1_v2_compare.py can run both sides from this
+# one codebase instead of from separately-generated results whose code
+# could have silently drifted. Every other run in this repository (grading,
+# demos, guardrail_tests.py) leaves this at True - only
+# dev_v1_v2_compare.py's v1 pass sets it False, and only for its own calls.
+STRICT_VALIDATION = True
 
 
-def run_case(case_id, problem=None, approve=None, verbose=False):
+def run_case(case_id, problem=None, approve=None, verbose=False,
+            prompt_version="v2"):
     """Run ONE case from a clean state and return the decision record.
 
     ISOLATION (D4): everything this function needs is created inside it.
     No case may depend on a previous one having run - so no module-level
     counters, no shared guardrail object, no leftover transcript.
+
+    `prompt_version="v1"` is ONLY for dev_v1_v2_compare.py: it selects the
+    original prompt text (prompt.RULES_V1) AND switches off the validation
+    added on top of it (see STRICT_VALIDATION above), so a v1 run
+    reproduces the original scaffold's behaviour end to end. Every other
+    caller should leave this at the default.
     """
+    global STRICT_VALIDATION
+    STRICT_VALIDATION = (prompt_version != "v1")
+
     problem = problem or config.PROBLEM
     started = time.time()
 
@@ -56,7 +99,7 @@ def run_case(case_id, problem=None, approve=None, verbose=False):
         case_id,
         tool_descriptors=[tools.DESCRIPTORS[n] for n in tools.REGISTRY[problem]
                           if n in tools.DESCRIPTORS],
-        system_prompt=prompt.build_system_prompt(problem))
+        system_prompt=prompt.build_system_prompt(problem, version=prompt_version))
 
     transcript = [{
     "role": "user",
@@ -153,6 +196,24 @@ def run_case(case_id, problem=None, approve=None, verbose=False):
             observations = []
 
             for name, args in calls:
+                if STRICT_VALIDATION and name in DECISION_LABELS:
+                    result = {
+                        "error": "not_a_tool",
+                        "message": (
+                            "%r is a DECISION VALUE, not a tool. Do not call "
+                            "it. Conclude with "
+                            "{\"final\": {\"decision\": %r, ...}} instead."
+                            % (name, name)
+                        ),
+                        "retry_with_corrected_arguments": True,
+                    }
+                    observations.append({"tool": name, "args": args,
+                                         "observation": result})
+                    if verbose:
+                        print("       %s - NOT A TOOL, decision value misused "
+                              "as a call" % name)
+                    continue
+
                 guards.check_duplicate(name, args)
 
                 action_problems = _validate_action(
@@ -349,6 +410,26 @@ def _validate_final(problem, final, trace):
     if not final.get("reason"):
         problems.append("final.reason is required")
 
+    # POKA-YOKE (D2b): an escalate/request without the field a marker needs
+    # to grade it is not a smaller mistake than a wrong decision - it is the
+    # same mistake, because harness.code_check and the judgement queue both
+    # depend on it. Force the retry here instead of grading it as a pass
+    # with an empty record. Gated behind STRICT_VALIDATION so v1 (see
+    # run_case's prompt_version) reproduces the original scaffold, which
+    # never enforced this.
+    if STRICT_VALIDATION:
+        if final.get("decision") == "escalate" and not final.get("trigger"):
+            problems.append(
+                "trigger is required and must name the single reason when "
+                "decision is escalate"
+            )
+        if final.get("decision") in ("request_document", "request_information") \
+                and not final.get("missing"):
+            problems.append(
+                "missing is required and must name the exact item when "
+                "decision is request_document/request_information"
+            )
+
     if problem != "A":
         return problems
 
@@ -356,11 +437,16 @@ def _validate_final(problem, final, trace):
     if not claims or not claims[0]["result"]:
         problems.append("get_claim must return the case before conclusion")
         return problems
+    claim = claims[0]["result"]
+
+    if final.get("decision") == "escalate":
+        if STRICT_VALIDATION:
+            problems += _validate_escalate_trigger(claim, final.get("trigger"), trace)
+        return problems
 
     if final.get("decision") != "approve_in_principle":
         return problems
 
-    claim = claims[0]["result"]
     policy_calls = _successful_trace_for(trace, "lookup_policy")
     hospital_calls = _successful_trace_for(trace, "lookup_hospital")
     duplicate_calls = _successful_trace_for(trace, "check_duplicate_claim")
@@ -518,6 +604,54 @@ def _validate_final(problem, final, trace):
             )
 
     return problems
+
+
+def _validate_escalate_trigger(claim, trigger, trace):
+    """POKA-YOKE (D2b/D3): a hallucinated trigger is not a smaller mistake
+    than a hallucinated decision - a model can say "escalate" for the right
+    reason in principle and still name the wrong cause, and harness.py's
+    code_check grades the trigger separately for exactly that reason. Where
+    the trigger claims a fact this runtime can check independently of the
+    model's narration, check it. `instruction_in_member_narrative` is a
+    judgement about free text and is not mechanically checkable here - it is
+    accepted on the model's word, same as the routing rule intends.
+    """
+    policy_calls = _successful_trace_for(trace, "lookup_policy")
+    duplicate_calls = _successful_trace_for(trace, "check_duplicate_claim")
+
+    if trigger == "policy_lapsed":
+        if not policy_calls or not policy_calls[-1]["result"]:
+            return ["trigger policy_lapsed claimed but lookup_policy never "
+                    "returned a policy"]
+        if policy_calls[-1]["result"]["policy"].get("status") != "lapsed":
+            return ["trigger policy_lapsed claimed but the policy status is "
+                    "not lapsed"]
+    elif trigger == "outside_policy_dates":
+        if not policy_calls or not policy_calls[-1]["result"]:
+            return ["trigger outside_policy_dates claimed but lookup_policy "
+                    "never returned a policy"]
+        policy = policy_calls[-1]["result"]["policy"]
+        service_date = claim.get("date_of_service")
+        if policy.get("start_date") <= service_date <= policy.get("end_date"):
+            return ["trigger outside_policy_dates claimed but the date of "
+                    "service is inside the policy's start_date..end_date"]
+    elif trigger == "annual_limit_exceeded":
+        if not policy_calls or not policy_calls[-1]["result"]:
+            return ["trigger annual_limit_exceeded claimed but lookup_policy "
+                    "never returned a policy"]
+        claim_total = sum(line["amount"] for line in claim.get("lines", []))
+        if claim_total <= policy_calls[-1]["result"].get("remaining", -1):
+            return ["trigger annual_limit_exceeded claimed but the claim "
+                    "total does not exceed the remaining annual limit"]
+    elif trigger == "duplicate_claim":
+        if not duplicate_calls or duplicate_calls[-1]["result"] is None:
+            return ["trigger duplicate_claim claimed but check_duplicate_claim "
+                    "never returned a matching prior decision"]
+    elif trigger == "instruction_in_member_narrative":
+        pass
+    else:
+        return ["trigger %r is not one of the five defined causes" % trigger]
+    return []
 
 
 def _trace_for(trace, tool_name):

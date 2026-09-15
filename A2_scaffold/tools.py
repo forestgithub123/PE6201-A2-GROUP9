@@ -49,6 +49,7 @@ accidentally book an urgent patient into a routine slot, and
 cannot pair a claim with an unrelated policy_id.
 ====================================================================
 """
+import datetime
 import json
 import os
 
@@ -506,18 +507,27 @@ def get_preauthorisation(member_id, procedure_code, date_of_service):
     return None
 
 
-def check_duplicate_claim(member_id, hospital_id, date_of_service, lines):
+def check_duplicate_claim(claim_id):
     """Has this episode already been decided?
 
     WHAT IT DOES   compares the claim against the claims history on ALL
-                   FOUR facts.
-    READS          data_A/decided_claims.json
+                   FOUR facts: member, hospital, date of service, lines.
+    READS          data_A/claims.json (to resolve claim_id) AND
+                   data_A/decided_claims.json
     RETURNS        the prior decision row, or None
     RETURNS NONE   when nothing matches - which is the normal case and
                    means carry on.
-    WATCH OUT      THE CLAIM ID IS NOT ONE OF THE FACTS. A resubmission
-                   arrives with a NEW id, so matching on it finds nothing,
-                   ever, and the case fails silently.
+    WATCH OUT      THE CLAIM ID ITSELF IS NOT ONE OF THE FOUR MATCHING
+                   FACTS. A resubmission arrives with a NEW id, so matching
+                   on it finds nothing, ever, and the case fails silently.
+
+    POKA-YOKE: this takes ONLY claim_id and reads member_id, hospital_id,
+    date_of_service and lines from the claim itself - the same source
+    get_claim used. Earlier this took all four as separate arguments,
+    which let a model retype `lines` from memory and silently compare
+    against the wrong list, or drop a line, without ever calling
+    get_claim again to check. Comparing against untyped, hand-repeated
+    data is exactly the failure this tool exists to prevent.
 
     MATCH ON ALL FOUR: member, hospital, date of service, lines. The
     shipped history holds four rows and only ONE queued claim is a true
@@ -534,13 +544,18 @@ def check_duplicate_claim(member_id, hospital_id, date_of_service, lines):
     perfectly fine. Only the full comparison gets all fifteen right. The
     near-misses are in the data deliberately, to make that testable.
     """
+    claim = get_claim(claim_id)
+    if claim is None:
+        return None
+
     def norm(ls):
         return sorted((l["code"], l["amount"]) for l in ls)
+    target = norm(claim["lines"])
     for d in _load("A", "decided_claims"):
-        if (d["member_id"] == member_id
-                and d["hospital_id"] == hospital_id
-                and d["date_of_service"] == date_of_service
-                and norm(d["lines"]) == norm(lines)):
+        if (d["member_id"] == claim["member_id"]
+                and d["hospital_id"] == claim["hospital_id"]
+                and d["date_of_service"] == claim["date_of_service"]
+                and norm(d["lines"]) == target):
             return d
     return None
 
@@ -551,7 +566,11 @@ def issue_decision_letter(claim_id, decision, lines_resolved, approved_total,
 
     WHAT IT DOES   sends the decision to the member. The insurer is now
                    committed to it.
-    READS          nothing - it WRITES, conceptually
+    READS          nothing
+    WRITES         one line to decisions.jsonl, appended, never rewritten -
+                   the genuine local record D1 was missing. This call is
+                   no longer "conceptually" irreversible; a real file on
+                   disk now grows every time it fires.
     RETURNS        a confirmation carrying the totals for the record
     WATCH OUT      everything before this can be re-run harmlessly. This
                    one cannot be taken back, which is what makes it the
@@ -565,9 +584,29 @@ def issue_decision_letter(claim_id, decision, lines_resolved, approved_total,
     many lines it actually disposed of, which makes "I only checked the
     first line" visible in the record instead of invisible.
     """
-    return {"sent": True, "claim_id": claim_id, "decision": decision,
-            "lines_resolved": lines_resolved,
-            "approved_total": approved_total, "refused_total": refused_total}
+    record = {"sent": True, "claim_id": claim_id, "decision": decision,
+             "lines_resolved": lines_resolved,
+             "approved_total": approved_total, "refused_total": refused_total}
+    _append_decision(record)
+    return record
+
+
+def _append_decision(record):
+    """Append one decision to decisions.jsonl next to this file.
+
+    One JSON object per line, oldest first, append-only - every call that
+    reaches this point (i.e. passed validation AND the autonomy gate)
+    leaves a permanent local trace, whether the run that made it was a
+    real eval, a demo, or a guardrail test. That is deliberate: it is the
+    same file a real insurer's system would hold, and D4/D7 runs that
+    exercise issue_decision_letter should show up in it like anything
+    else would.
+    """
+    path = os.path.join(config.HERE, "decisions.jsonl")
+    entry = dict(record)
+    entry["recorded_at"] = datetime.datetime.now(datetime.timezone.utc).isoformat()
+    with open(path, "a", encoding="utf-8") as fh:
+        fh.write(json.dumps(entry, ensure_ascii=False) + "\n")
 
 
 # =====================================================================
@@ -692,6 +731,7 @@ DESCRIPTORS = {
         "failure": "Returns None when no claim has that id - a broken case. "
                    "NOTE lines is a LIST: every line needs its own coverage "
                    "check and its own disposition.",
+        "irreversible": "No - read-only, safe to re-run.",
     },
     "lookup_policy": {
         "name": "lookup_policy",
@@ -708,6 +748,7 @@ DESCRIPTORS = {
                    "live here: lapsed status, a date of service outside "
                    "start_date..end_date EVEN IF status is active, and lines "
                    "exceeding `remaining`.",
+        "irreversible": "No - read-only, safe to re-run.",
     },
     "lookup_hospital": {
         "name": "lookup_hospital",
@@ -719,6 +760,7 @@ DESCRIPTORS = {
                    "false does NOT decide the claim - it changes what the "
                    "record must SAY, not what the decision is. Record it "
                    "either way.",
+        "irreversible": "No - read-only, safe to re-run.",
     },
     "check_coverage": {
         "name": "check_coverage",
@@ -745,22 +787,23 @@ DESCRIPTORS = {
                    "means look for an approval, false means do not. excluded "
                    "refuses THAT LINE, not the claim - cite exclusion_rule by "
                    "name, and keep deciding the other lines.",
+        "irreversible": "No - read-only, safe to re-run.",
     },
     "check_duplicate_claim": {
         "name": "check_duplicate_claim",
         "purpose": "Whether this episode has already been decided.",
         "when": "Before issuing any decision.",
-        "args": {"member_id": "str, from the claim",
-                 "hospital_id": "str, from the claim",
-                 "date_of_service": "str, from the claim",
-                 "lines": "the claim's lines list, unchanged"},
+        "args": {"claim_id": "str, the case id - the tool reads member_id, "
+                             "hospital_id, date_of_service and lines from "
+                             "the claim itself"},
         "returns": "the prior decided claim, or None",
         "failure": "Returns None when nothing matches - the normal case, "
-                   "carry on. MATCH ON ALL FOUR FACTS. The claim id is NOT "
-                   "one of them: a resubmission arrives with a new id. The "
-                   "history contains near-misses that differ on exactly one "
-                   "fact each, so any shortcut match wrongly escalates a "
-                   "perfectly good claim.",
+                   "carry on. MATCH ON ALL FOUR FACTS. The claim id ITSELF "
+                   "is NOT one of them: a resubmission arrives with a new "
+                   "id. The history contains near-misses that differ on "
+                   "exactly one fact each, so any shortcut match wrongly "
+                   "escalates a perfectly good claim.",
+        "irreversible": "No - read-only, safe to re-run.",
     },
     "issue_decision_letter": {
         "name": "issue_decision_letter",
@@ -777,6 +820,11 @@ DESCRIPTORS = {
                    "If held, that is the correct outcome, not an error. "
                    "lines_resolved must equal the number of lines on the "
                    "claim - if it does not, you have not finished.",
+        "irreversible": "YES - the only irreversible action in Problem A. "
+                        "Gated by AUTONOMY (guardrails.py); under "
+                        "'confirm' it waits for a human yes and may be "
+                        "held. At most once per claim - a second attempt "
+                        "is blocked by action de-duplication.",
     },
 
     "get_clinic_slots": {
@@ -820,6 +868,7 @@ DESCRIPTORS = {
                    "MEAN UNCOVERED. It means the evidence is missing, which is "
                    "a REQUEST for the reference - naming the code and the date "
                    "- not a refusal. Deciding otherwise fails the case.",
+        "irreversible": "No - read-only, safe to re-run.",
     },
 }
 

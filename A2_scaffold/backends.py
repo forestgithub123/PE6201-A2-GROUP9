@@ -26,9 +26,16 @@ moves is how you test the parts you wrote.
 ====================================================================
 """
 import json
+import socket
+import time
+import urllib.error
 import urllib.request
 
 import config
+
+
+class LiveBackendError(RuntimeError):
+    """The live provider remained unavailable after bounded retries."""
 
 
 # =====================================================================
@@ -100,7 +107,10 @@ SCRIPTS = {
                     "The policy, duplicate history, hospital, and one coverage "
                     "check PER LINE - three lines, three checks. All independent, "
                     "so one turn.",
-         "calls": [("lookup_policy", {"member_id": "M-2214"}),
+         "calls": [("lookup_policy", {"member_id": "M-2214",
+                                       "claim_lines": [{"code": "47120", "amount": 1400},
+                                                        {"code": "62480", "amount": 780},
+                                                        {"code": "31255", "amount": 300}]}),
                    ("check_duplicate_claim", {
                        "member_id": "M-2214",
                        "hospital_id": "H-114",
@@ -132,9 +142,14 @@ SCRIPTS = {
          "calls": [("issue_decision_letter", {
              "claim_id": "CLM-8842",
              "decision": "approve_in_principle",
-             "lines_resolved": 3,
-             "approved_total": 2180,
-             "refused_total": 300})]},
+             "line_dispositions": [
+                 {"code": "47120", "amount": 1400, "status": "covered"},
+                 {"code": "62480", "amount": 780, "status": "covered",
+                  "preauth": "PA-5521"},
+                 {"code": "31255", "amount": 300,
+                  "status": "not_covered",
+                  "exclusion": "EX-14 cosmetic dermatology"}
+             ]})]},
 
         {"final": {
             "decision": "approve_in_principle",
@@ -210,19 +225,25 @@ class LiveBackend:
         self.case_id = case_id
         self.tools = tool_descriptors
         self.system_prompt = system_prompt
+        self._last_usage = (0, 0)
 
     def next_move(self, transcript):
         messages = [{"role": "system", "content": self.system_prompt}]
         for entry in transcript:
             messages.append({"role": entry["role"], "content": entry["content"]})
-        raw = _live_call(messages)
+        response = _live_call(messages)
+        if isinstance(response, tuple):
+            raw, usage = response
+            self._last_usage = usage
+        else:
+            raw = response
+            self._last_usage = (0, 0)
         return _parse_move(raw)
 
-    @staticmethod
-    def token_estimate(transcript):
-        # Replace with the usage numbers the API returns. Estimating here
-        # and calling it measured is the mistake D6 punishes.
-        return 0, 0
+    def token_estimate(self, transcript):
+        usage = self._last_usage
+        self._last_usage = (0, 0)
+        return usage
 
 
 def _parse_move(text):
@@ -252,16 +273,41 @@ def _live_call(messages):
     "model": config.MODEL,
     "messages": messages,
     "temperature": 0,
+    "max_tokens": config.MAX_OUTPUT_TOKENS,
     "response_format": {"type": "json_object"},
     }).encode()
     req = urllib.request.Request(
         config.BASE_URL.rstrip("/") + "/chat/completions",
         data=body,
         headers={"Authorization": "Bearer " + config.API_KEY,
-                 "Content-Type": "application/json"})
-    with urllib.request.urlopen(req, timeout=60) as r:
-        payload = json.load(r)
-    return payload["choices"][0]["message"]["content"]
+                 "Content-Type": "application/json",
+                 "HTTP-Referer": "https://github.com/pe6201-a2-scaffold",
+                 "X-Title": "PE6201 A2 scaffold"})
+    last_error = None
+    for attempt in range(3):
+        try:
+            with urllib.request.urlopen(
+                    req, timeout=config.API_TIMEOUT_SECONDS) as r:
+                payload = json.load(r)
+            break
+        except urllib.error.HTTPError as error:
+            if error.code not in (408, 429) and not 500 <= error.code < 600:
+                raise
+            last_error = error
+        except (TimeoutError, socket.timeout, urllib.error.URLError) as error:
+            last_error = error
+
+        if attempt < 2:
+            time.sleep(2 ** attempt)
+    else:
+        raise LiveBackendError(
+            "live API failed after 3 attempts: %s" % last_error
+        ) from last_error
+
+    usage = payload.get("usage") or {}
+    tokens_in = usage.get("prompt_tokens", usage.get("input_tokens", 0))
+    tokens_out = usage.get("completion_tokens", usage.get("output_tokens", 0))
+    return payload["choices"][0]["message"]["content"], (tokens_in, tokens_out)
 
 
 def make_backend(case_id, tool_descriptors=None, system_prompt=""):

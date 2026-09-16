@@ -29,6 +29,12 @@ BACKEND = "live"          # "scripted" | "live"
 MODEL = "openai/gpt-4o-mini"  # only used when BACKEND == "live"
 BASE_URL = "https://openrouter.ai/api/v1"
 
+# Live request controls. A bounded JSON move should never need thousands of
+# generated tokens; limiting it prevents an upstream request from appearing
+# to hang while the model continues producing prose.
+API_TIMEOUT_SECONDS = 90
+MAX_OUTPUT_TOKENS = 1200
+
 # Your key never goes in this file. Put it in the environment:
 #     export OPENROUTER_API_KEY="sk-or-..."
 # In Colab:  os.environ["OPENROUTER_API_KEY"] = "sk-or-..."

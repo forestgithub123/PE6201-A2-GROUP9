@@ -331,13 +331,15 @@ def get_claim(claim_id):
     return None
 
 
-def lookup_policy(member_id):
+def lookup_policy(member_id, claim_lines=None):
     """Follow the claim to the money and the rules.
 
     WHAT IT DOES   claim -> member -> policy, and does the headroom
                    arithmetic for you.
     READS          data_A/members.json AND data_A/policies.json
     RETURNS        {"member": {...}, "policy": {...}, "remaining": int}
+                   plus claim_total and within_annual_limit when claim_lines
+                   is supplied.
     RETURNS NONE   when the member or their policy does not exist.
     WATCH OUT      `remaining` is annual_limit MINUS used_to_date. The
                    claim total is tested against THAT, not against
@@ -365,8 +367,18 @@ def lookup_policy(member_id):
               if x["policy_id"] == m["policy_id"]), None)
     if p is None:
         return None
-    return {"member": m, "policy": p,
-            "remaining": p["annual_limit"] - p["used_to_date"]}
+    remaining = p["annual_limit"] - p["used_to_date"]
+    result = {"member": m, "policy": p, "remaining": remaining}
+    if claim_lines is not None:
+        if not isinstance(claim_lines, list):
+            raise ValueError("claim_lines must be a list")
+        try:
+            claim_total = sum(line["amount"] for line in claim_lines)
+        except (KeyError, TypeError):
+            raise ValueError("claim_lines must contain amount on every line")
+        result["claim_total"] = claim_total
+        result["within_annual_limit"] = claim_total <= remaining
+    return result
 
 
 def lookup_hospital(hospital_id):
@@ -545,14 +557,15 @@ def check_duplicate_claim(member_id, hospital_id, date_of_service, lines):
     return None
 
 
-def issue_decision_letter(claim_id, decision, lines_resolved, approved_total,
-                          refused_total=0):
+def issue_decision_letter(claim_id, decision, line_dispositions=None,
+                          lines_resolved=None, approved_total=None,
+                          refused_total=None):
     """>>> THE IRREVERSIBLE STEP FOR PROBLEM A <<<
 
     WHAT IT DOES   sends the decision to the member. The insurer is now
                    committed to it.
     READS          nothing - it WRITES, conceptually
-    RETURNS        a confirmation carrying the totals for the record
+    RETURNS        a confirmation carrying the automatically calculated totals
     WATCH OUT      everything before this can be re-run harmlessly. This
                    one cannot be taken back, which is what makes it the
                    gated action - see GATED_ACTION below.
@@ -561,13 +574,43 @@ def issue_decision_letter(claim_id, decision, lines_resolved, approved_total,
     record counts it as turn 4 of 4, and your D2(c) arithmetic has to
     count it too.
 
-    `lines_resolved` is here on purpose: it forces the agent to state how
-    many lines it actually disposed of, which makes "I only checked the
-    first line" visible in the record instead of invisible.
+    `line_dispositions` must contain one object per claim line. Each object
+    has `code`, `amount`, and `status` (`covered` or `not_covered`). Amounts
+    are summed here, in code, so the model cannot introduce an arithmetic
+    error by typing approved/refused totals. The old total arguments remain
+    in the signature so stale callers fail with a clear validation message;
+    they are never trusted for the returned totals.
     """
+    if decision != "approve_in_principle":
+        raise ValueError(
+            "issue_decision_letter only supports approve_in_principle; "
+            "request_document and escalate are final outcomes"
+        )
+    if not isinstance(line_dispositions, list) or not line_dispositions:
+        raise ValueError(
+            "line_dispositions is required; provide one entry per claim line"
+        )
+
+    approved = 0
+    refused = 0
+    for line in line_dispositions:
+        if not isinstance(line, dict):
+            raise ValueError("each line disposition must be an object")
+        status = line.get("status")
+        amount = line.get("amount")
+        if status not in ("covered", "not_covered"):
+            raise ValueError("line status must be covered or not_covered")
+        if not isinstance(amount, (int, float)) or isinstance(amount, bool):
+            raise ValueError("line amount must be numeric")
+        if status == "covered":
+            approved += amount
+        else:
+            refused += amount
+
+    resolved = len(line_dispositions) if lines_resolved is None else lines_resolved
     return {"sent": True, "claim_id": claim_id, "decision": decision,
-            "lines_resolved": lines_resolved,
-            "approved_total": approved_total, "refused_total": refused_total}
+            "lines_resolved": resolved,
+            "approved_total": approved, "refused_total": refused}
 
 
 # =====================================================================
@@ -699,15 +742,20 @@ DESCRIPTORS = {
                    "left.",
         "when": "After get_claim. Independent of the coverage checks and the "
                 "hospital lookup, so all of them fit in one turn.",
-        "args": {"member_id": "str, from the claim"},
+        "args": {"member_id": "str, from the claim",
+                 "claim_lines": "list[{code, amount}], exactly the lines from get_claim; pass this for a deterministic annual-limit check"},
         "returns": "{member: {...}, policy: {status, start_date, end_date, "
-                   "annual_limit, used_to_date, exclusions[]}, remaining: int}",
+                   "annual_limit, used_to_date, exclusions[]}, remaining: int; "
+                   "when claim_lines is passed also claim_total and "
+                   "within_annual_limit: bool}",
         "failure": "Returns None when the member or policy does not exist. "
                    "USE `remaining`, not annual_limit - it is the limit minus "
                    "what is already spent. Three separate escalation reasons "
                    "live here: lapsed status, a date of service outside "
                    "start_date..end_date EVEN IF status is active, and lines "
-                   "exceeding `remaining`.",
+                   "exceeding `remaining`. When claim_lines is supplied the "
+                   "tool also returns claim_total and within_annual_limit; "
+                   "use those fields instead of doing arithmetic yourself.",
     },
     "lookup_hospital": {
         "name": "lookup_hospital",
@@ -768,15 +816,16 @@ DESCRIPTORS = {
         "when": "Last, once every line has a disposition.",
         "args": {"claim_id": "str, the case id",
                  "decision": "str, one of the three outcomes",
-                 "lines_resolved": "int, how many lines you actually decided",
-                 "approved_total": "int, dollars approved",
-                 "refused_total": "int, dollars refused (default 0)"},
+                 "line_dispositions": "list of {code, amount, status}; one per claim line",
+                 "lines_resolved": "int, optional compatibility field; normally omit"},
         "returns": "{sent: true, claim_id, decision, lines_resolved, "
                    "approved_total, refused_total}",
         "failure": "This call is GATED and may be held for human approval. "
                    "If held, that is the correct outcome, not an error. "
-                   "lines_resolved must equal the number of lines on the "
-                   "claim - if it does not, you have not finished.",
+                   "The code calculates approved_total as the sum of amounts "
+                   "with status=covered and refused_total as the sum with "
+                   "status=not_covered. Do not send or calculate totals yourself. "
+                   "line_dispositions must contain every claim line exactly once.",
     },
 
     "get_clinic_slots": {

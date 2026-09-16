@@ -1,0 +1,194 @@
+{
+  "metadata": {
+    "problem": "A",
+    "contributor": "individual_submission",
+    "purpose": "Eight independently authored D4 Problem A claims and routing-table labels. These records use only shipped supporting data and do not alter shipped rows.",
+    "case_count": 8,
+    "negative_case_count": 0,
+    "negative_cases": [],
+    "id_ranges": {
+      "claims": "CLM-9101 to CLM-9108"
+    },
+    "labeling_rule": "Labels were written from the Problem A routing table before executing the agent. When used with the shipped 15 cases and wsm_data_A.json, this keeps the combined set at 31 cases and 10 negative cases."
+  },
+  "claims": [
+    {
+      "claim_id": "CLM-9101",
+      "member_id": "M-6118",
+      "hospital_id": "H-207",
+      "date_of_service": "2026-10-10",
+      "narrative": "Routine outpatient review after a minor ankle sprain.",
+      "documents": ["itemised_bill"],
+      "lines": [{"code": "99213", "amount": 245}]
+    },
+    {
+      "claim_id": "CLM-9102",
+      "member_id": "M-2214",
+      "hospital_id": "H-114",
+      "date_of_service": "2026-10-11",
+      "narrative": "Appendix follow-up consultation with an MRI requested by the treating physician.",
+      "documents": ["itemised_bill"],
+      "lines": [
+        {"code": "47120", "amount": 1260},
+        {"code": "70553", "amount": 540}
+      ]
+    },
+    {
+      "claim_id": "CLM-9103",
+      "member_id": "M-3390",
+      "hospital_id": "H-207",
+      "date_of_service": "2026-10-12",
+      "narrative": "Outpatient consultation one dollar below the available annual benefit.",
+      "documents": ["itemised_bill"],
+      "lines": [{"code": "99213", "amount": 599}]
+    },
+    {
+      "claim_id": "CLM-9104",
+      "member_id": "M-6118",
+      "hospital_id": "H-114",
+      "date_of_service": "2026-10-13",
+      "narrative": "Consultation and cosmetic skin treatment during the same visit.",
+      "documents": ["itemised_bill"],
+      "lines": [
+        {"code": "99213", "amount": 200},
+        {"code": "31255", "amount": 475}
+      ]
+    },
+    {
+      "claim_id": "CLM-9105",
+      "member_id": "M-5502",
+      "hospital_id": "H-207",
+      "date_of_service": "2026-10-14",
+      "narrative": "Planned total knee replacement; the hospital discharge paperwork is attached.",
+      "documents": ["itemised_bill", "discharge_summary"],
+      "lines": [{"code": "27447", "amount": 5000}]
+    },
+    {
+      "claim_id": "CLM-9106",
+      "member_id": "M-6118",
+      "hospital_id": "H-114",
+      "date_of_service": "2026-10-15",
+      "narrative": "Diagnostic colonoscopy with routine metabolic testing on the same visit.",
+      "documents": ["itemised_bill"],
+      "lines": [
+        {"code": "45378", "amount": 1050},
+        {"code": "80053", "amount": 80}
+      ]
+    },
+    {
+      "claim_id": "CLM-9107",
+      "member_id": "M-5502",
+      "hospital_id": "H-330",
+      "date_of_service": "2026-10-16",
+      "narrative": "Consultation at a non-panel specialist near the member's workplace.",
+      "documents": ["itemised_bill"],
+      "lines": [{"code": "99213", "amount": 230}]
+    },
+    {
+      "claim_id": "CLM-9108",
+      "member_id": "M-2214",
+      "hospital_id": "H-207",
+      "date_of_service": "2026-10-17",
+      "narrative": "Consultation, metabolic panel, MRI and appendix follow-up in one episode of care.",
+      "documents": ["itemised_bill"],
+      "lines": [
+        {"code": "99213", "amount": 230},
+        {"code": "80053", "amount": 75},
+        {"code": "70553", "amount": 610},
+        {"code": "47120", "amount": 1250}
+      ]
+    }
+  ],
+  "expected_outcomes": [
+    {
+      "case_id": "CLM-9101",
+      "expected_decision": "approve_in_principle",
+      "family": "ordinary_single_line",
+      "must_record": [
+        "1 line covered",
+        "approved_total 245",
+        "policy POL-7220 active on 2026-10-10"
+      ],
+      "note": "Short ordinary claim using a live policy and a covered consultation. It is not a duplicate of any decided claim."
+    },
+    {
+      "case_id": "CLM-9102",
+      "expected_decision": "approve_in_principle",
+      "family": "two_line_ordinary_run",
+      "must_record": [
+        "a disposition for both lines",
+        "approved_total 1800",
+        "no pre-authorisation required for 47120 or 70553"
+      ],
+      "note": "Two covered, non-preauthorised lines. The case checks that the agent resolves every line rather than stopping after the first."
+    },
+    {
+      "case_id": "CLM-9103",
+      "expected_decision": "approve_in_principle",
+      "family": "one_dollar_inside_remaining_limit",
+      "must_record": [
+        "approved_total 599",
+        "600 remaining on POL-4102",
+        "claim total is below, not above, the remaining annual limit"
+      ],
+      "note": "Inside-boundary companion to the shipped and group boundary cases; an annual-limit check must not escalate this claim."
+    },
+    {
+      "case_id": "CLM-9104",
+      "expected_decision": "approve_in_principle",
+      "family": "partly_payable_two_line",
+      "must_record": [
+        "a disposition for both lines",
+        "99213 covered",
+        "31255 refused under EX-14 cosmetic dermatology",
+        "approved_total 200",
+        "refused_total 475"
+      ],
+      "note": "A mixed claim is still an approve-in-principle outcome when every line can be resolved; the cosmetic line is excluded by POL-7220."
+    },
+    {
+      "case_id": "CLM-9105",
+      "expected_decision": "approve_in_principle",
+      "family": "valid_preauth_and_required_document",
+      "must_record": [
+        "PA-5702 cited for line 27447",
+        "validity covers date of service 2026-10-14",
+        "discharge_summary present for line 27447",
+        "approved_total 5000"
+      ],
+      "note": "The required document is present and the member-specific pre-authorisation is valid on the service date."
+    },
+    {
+      "case_id": "CLM-9106",
+      "expected_decision": "approve_in_principle",
+      "family": "required_document_present_two_line",
+      "must_record": [
+        "a disposition for both lines",
+        "itemised_bill present for line 45378",
+        "approved_total 1130"
+      ],
+      "note": "A document-dependent procedure and an ordinary line are both fully decidable from the attached evidence."
+    },
+    {
+      "case_id": "CLM-9107",
+      "expected_decision": "approve_in_principle",
+      "family": "non_panel_hospital_domestic",
+      "must_record": [
+        "H-330 recorded as non-panel",
+        "approved_total 230"
+      ],
+      "note": "Domestic non-panel treatment changes the recorded evidence, not the payable decision."
+    },
+    {
+      "case_id": "CLM-9108",
+      "expected_decision": "approve_in_principle",
+      "family": "four_line_long_run",
+      "must_record": [
+        "a disposition for all 4 lines",
+        "approved_total 2165",
+        "no line requires pre-authorisation"
+      ],
+      "note": "Longer ordinary run that verifies coverage checks and total calculation over four covered, non-preauthorised lines."
+    }
+  ]
+}

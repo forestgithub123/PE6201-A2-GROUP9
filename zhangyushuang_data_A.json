@@ -1,0 +1,252 @@
+{
+  "metadata": {
+    "problem": "A",
+    "contributor": "Mio",
+    "purpose": "Eight independently authored D4 Problem A evaluation cases using only the shipped supporting data.",
+    "case_count": 8,
+    "negative_case_count": 4,
+    "negative_cases": [
+      "CLM-9202",
+      "CLM-9203",
+      "CLM-9204",
+      "CLM-9208"
+    ],
+    "id_ranges": {
+      "claims": "CLM-9201 to CLM-9208"
+    },
+    "labeling_rule": "Expected outcomes were written from the shipped Problem A reference data before running the agent."
+  },
+  "claims": [
+    {
+      "claim_id": "CLM-9201",
+      "member_id": "M-3390",
+      "hospital_id": "H-207",
+      "date_of_service": "2026-09-18",
+      "narrative": "Outpatient consultation at the exact remaining annual benefit.",
+      "documents": [
+        "itemised_bill"
+      ],
+      "lines": [
+        {
+          "code": "99213",
+          "amount": 600
+        }
+      ]
+    },
+    {
+      "claim_id": "CLM-9202",
+      "member_id": "M-3390",
+      "hospital_id": "H-207",
+      "date_of_service": "2026-09-18",
+      "narrative": "Outpatient consultation slightly above the remaining annual benefit.",
+      "documents": [
+        "itemised_bill"
+      ],
+      "lines": [
+        {
+          "code": "99213",
+          "amount": 601
+        }
+      ]
+    },
+    {
+      "claim_id": "CLM-9203",
+      "member_id": "M-4471",
+      "hospital_id": "H-114",
+      "date_of_service": "2026-09-18",
+      "narrative": "Emergency appendix operation.",
+      "documents": [
+        "itemised_bill",
+        "discharge_summary"
+      ],
+      "lines": [
+        {
+          "code": "47120",
+          "amount": 1600
+        }
+      ]
+    },
+    {
+      "claim_id": "CLM-9204",
+      "member_id": "M-6118",
+      "hospital_id": "H-207",
+      "date_of_service": "2026-09-18",
+      "narrative": "Knee arthroscopy. The member had an approval earlier in the year.",
+      "documents": [
+        "itemised_bill",
+        "discharge_summary"
+      ],
+      "lines": [
+        {
+          "code": "29881",
+          "amount": 1900
+        }
+      ]
+    },
+    {
+      "claim_id": "CLM-9205",
+      "member_id": "M-2214",
+      "hospital_id": "H-114",
+      "date_of_service": "2026-09-18",
+      "narrative": "Consultation together with cosmetic dermabrasion.",
+      "documents": [
+        "itemised_bill"
+      ],
+      "lines": [
+        {
+          "code": "99213",
+          "amount": 220
+        },
+        {
+          "code": "31255",
+          "amount": 480
+        }
+      ]
+    },
+    {
+      "claim_id": "CLM-9206",
+      "member_id": "M-5502",
+      "hospital_id": "H-451",
+      "date_of_service": "2026-09-18",
+      "narrative": "Routine consultation while travelling in Malaysia.",
+      "documents": [
+        "itemised_bill"
+      ],
+      "lines": [
+        {
+          "code": "99213",
+          "amount": 260
+        }
+      ]
+    },
+    {
+      "claim_id": "CLM-9207",
+      "member_id": "M-5502",
+      "hospital_id": "H-207",
+      "date_of_service": "2026-09-18",
+      "narrative": "Planned total knee replacement with discharge paperwork attached.",
+      "documents": [
+        "itemised_bill",
+        "discharge_summary"
+      ],
+      "lines": [
+        {
+          "code": "27447",
+          "amount": 5200
+        }
+      ]
+    },
+    {
+      "claim_id": "CLM-9208",
+      "member_id": "M-5502",
+      "hospital_id": "H-114",
+      "date_of_service": "2026-09-18",
+      "narrative": "Diagnostic colonoscopy; only a discharge summary is attached.",
+      "documents": [
+        "discharge_summary"
+      ],
+      "lines": [
+        {
+          "code": "45378",
+          "amount": 1050
+        }
+      ]
+    }
+  ],
+  "expected_outcomes": [
+    {
+      "case_id": "CLM-9201",
+      "expected_decision": "approve_in_principle",
+      "family": "exact_remaining_limit_boundary",
+      "must_record": [
+        "approved_total 600",
+        "600 remaining on POL-4102",
+        "amount exactly at the remaining annual limit is payable"
+      ],
+      "note": "Boundary case using the exact remaining annual benefit."
+    },
+    {
+      "case_id": "CLM-9202",
+      "expected_decision": "escalate",
+      "trigger": "annual_limit_exceeded",
+      "family": "over_remaining_limit",
+      "must_record": [
+        "600 remaining on POL-4102",
+        "claim amount 601 exceeds the remaining annual limit",
+        "escalate rather than approve the full amount"
+      ],
+      "note": "One-dollar-over boundary case."
+    },
+    {
+      "case_id": "CLM-9203",
+      "expected_decision": "escalate",
+      "trigger": "inactive_policy_on_service_date",
+      "family": "lapsed_policy",
+      "must_record": [
+        "POL-5588 is lapsed",
+        "policy ended on 2026-03-31",
+        "service date 2026-09-18 is outside policy validity"
+      ],
+      "note": "The member exists, but the linked policy is no longer active on the service date."
+    },
+    {
+      "case_id": "CLM-9204",
+      "expected_decision": "escalate",
+      "trigger": "expired_preauthorisation",
+      "family": "expired_preauth",
+      "must_record": [
+        "procedure 29881 requires pre-authorisation",
+        "PA-5640 expired on 2026-05-31",
+        "service date 2026-09-18 is outside the pre-authorisation validity"
+      ],
+      "note": "The member has a matching pre-authorisation record, but it has expired."
+    },
+    {
+      "case_id": "CLM-9205",
+      "expected_decision": "approve_in_principle",
+      "family": "partly_payable_exclusion",
+      "must_record": [
+        "99213 covered",
+        "31255 refused under EX-14 cosmetic dermatology",
+        "approved_total 220",
+        "refused_total 480"
+      ],
+      "note": "Mixed claim: one covered line and one excluded cosmetic line."
+    },
+    {
+      "case_id": "CLM-9206",
+      "expected_decision": "approve_in_principle",
+      "family": "non_panel_overseas",
+      "must_record": [
+        "H-451 recorded as non-panel",
+        "H-451 recorded as located in MY",
+        "approved_total 260"
+      ],
+      "note": "Non-panel overseas provider is recorded while the otherwise covered consultation remains payable."
+    },
+    {
+      "case_id": "CLM-9207",
+      "expected_decision": "approve_in_principle",
+      "family": "valid_preauth_and_required_document",
+      "must_record": [
+        "procedure 27447 requires pre-authorisation",
+        "PA-5702 is valid on 2026-09-18",
+        "discharge_summary present",
+        "approved_total 5200"
+      ],
+      "note": "Both the pre-authorisation and required document conditions are satisfied."
+    },
+    {
+      "case_id": "CLM-9208",
+      "expected_decision": "escalate",
+      "trigger": "missing_required_document",
+      "family": "missing_required_document",
+      "must_record": [
+        "procedure 45378 requires itemised_bill",
+        "itemised_bill is missing",
+        "claim cannot be approved without the required document"
+      ],
+      "note": "The procedure itself is covered, but its required itemised bill is absent."
+    }
+  ]
+}

@@ -26,7 +26,7 @@ import os
 # ─────────────────────────────────────────────────────────────────────
 BACKEND = "live"          # "scripted" | "live"
 
-MODEL = "qwen/qwen3.8-max"  # only used when BACKEND == "live"
+MODEL = "openai/gpt-4o-mini"  # only used when BACKEND == "live"
 BASE_URL = "https://openrouter.ai/api/v1"
 
 # Live request controls. A bounded JSON move should never need thousands of
@@ -101,8 +101,8 @@ def data_root():
 # Checked against vendor pages 28 August 2026. RE-CHECK THEM: quoting a
 # price you did not verify is the kind of thing D6 is marked on.
 # ─────────────────────────────────────────────────────────────────────
-PRICE_IN = 0.10
-PRICE_OUT = 0.40
+PRICE_IN = 0.15
+PRICE_OUT = 0.6
 
 
 def _stale_bytecode_warning():

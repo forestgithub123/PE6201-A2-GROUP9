@@ -21,7 +21,7 @@
       "tokens_in_estimated": 32400,
       "tokens_out_estimated": 720,
       "tokens_total_estimated": 33120,
-      "model_equivalent_cost_usd_estimated": 0.003528,
+      "model_equivalent_cost_usd_estimated": 0.005292,
       "actual_api_cost_usd": 0.0,
       "code_check_passed": true,
       "code_check_failures": [],
@@ -41,7 +41,7 @@
       "tokens_in_estimated": 6000,
       "tokens_out_estimated": 240,
       "tokens_total_estimated": 6240,
-      "model_equivalent_cost_usd_estimated": 0.000696,
+      "model_equivalent_cost_usd_estimated": 0.001044,
       "actual_api_cost_usd": 0.0,
       "code_check_passed": false,
       "code_check_failures": [
@@ -63,7 +63,7 @@
       "tokens_in_estimated": 52800,
       "tokens_out_estimated": 960,
       "tokens_total_estimated": 53760,
-      "model_equivalent_cost_usd_estimated": 0.005664,
+      "model_equivalent_cost_usd_estimated": 0.008496,
       "actual_api_cost_usd": 0.0,
       "code_check_passed": true,
       "code_check_failures": [],
@@ -83,7 +83,7 @@
       "tokens_in_estimated": 32400,
       "tokens_out_estimated": 720,
       "tokens_total_estimated": 33120,
-      "model_equivalent_cost_usd_estimated": 0.003528,
+      "model_equivalent_cost_usd_estimated": 0.005292,
       "actual_api_cost_usd": 0.0,
       "code_check_passed": true,
       "code_check_failures": [],
@@ -114,7 +114,7 @@
         "tokens_in_estimated": 2092800,
         "tokens_out_estimated": 55920,
         "tokens_total_estimated": 2148720,
-        "model_equivalent_cost_usd_estimated": 0.231648,
+        "model_equivalent_cost_usd_estimated": 0.347472,
         "actual_api_cost_usd": 0.0
       },
       "loose_cap_comparator": {
@@ -134,7 +134,7 @@
         "tokens_in_estimated": 2092800,
         "tokens_out_estimated": 55920,
         "tokens_total_estimated": 2148720,
-        "model_equivalent_cost_usd_estimated": 0.231648,
+        "model_equivalent_cost_usd_estimated": 0.347472,
         "actual_api_cost_usd": 0.0
       },
       "cap_rationale": "The configured cap of 8 is 3 turns above the longest legitimate scripted run of 5; cap 30 changes no legitimate result and would be too loose to be a meaningful control."

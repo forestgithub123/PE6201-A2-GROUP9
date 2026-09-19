@@ -1,0 +1,343 @@
+{
+  "backend": "scripted",
+  "actual_api_cost_usd": 0.0,
+  "measurement_note": "Scripted token counts and model-equivalent costs are deterministic estimates, not measured API usage.",
+  "loop_control_failure": {
+    "failure": "loop_control_duplicate_action",
+    "case_id": "CLM-8842",
+    "working_agent_minus_x": "Guardrails.check_duplicate action-memory check",
+    "monitoring_that_detected_it": [
+      "per-run turns",
+      "per-run token estimate",
+      "per-run model-equivalent cost estimate",
+      "tool trace",
+      "stopped_by and guardrails_fired"
+    ],
+    "working_agent": {
+      "decision": "approve_in_principle",
+      "reason": "The claim has been reviewed and the following decisions have been made: the laparoscopic appendicectomy is covered, the lumbar spinal fusion is covered with valid pre-authorization PA-5521, and the cosmetic dermabrasion is excluded due to cosmetic dermatology rules.",
+      "turns": 5,
+      "tool_calls": 9,
+      "tokens_in_estimated": 32400,
+      "tokens_out_estimated": 720,
+      "tokens_total_estimated": 33120,
+      "model_equivalent_cost_usd_estimated": 0.003528,
+      "actual_api_cost_usd": 0.0,
+      "code_check_passed": true,
+      "code_check_failures": [],
+      "stopped_by": null,
+      "guardrails_fired": [
+        {
+          "guardrail": "gate_passed",
+          "detail": "issue_decision_letter (autonomy=act)"
+        }
+      ]
+    },
+    "fault_injected_guard_present": {
+      "decision": "escalate",
+      "reason": "halted by the duplicate_action guardrail - get_claim called again with identical arguments - the loop is not progressing",
+      "turns": 2,
+      "tool_calls": 1,
+      "tokens_in_estimated": 6000,
+      "tokens_out_estimated": 240,
+      "tokens_total_estimated": 6240,
+      "model_equivalent_cost_usd_estimated": 0.000696,
+      "actual_api_cost_usd": 0.0,
+      "code_check_passed": false,
+      "code_check_failures": [
+        "decision 'escalate', expected 'approve_in_principle'"
+      ],
+      "stopped_by": "duplicate_action",
+      "guardrails_fired": [
+        {
+          "guardrail": "duplicate_action",
+          "detail": "get_claim repeated"
+        }
+      ]
+    },
+    "minus_x": {
+      "decision": "approve_in_principle",
+      "reason": "The claim has been reviewed and the following decisions have been made: the laparoscopic appendicectomy is covered, the lumbar spinal fusion is covered with valid pre-authorization PA-5521, and the cosmetic dermabrasion is excluded due to cosmetic dermatology rules.",
+      "turns": 7,
+      "tool_calls": 11,
+      "tokens_in_estimated": 52800,
+      "tokens_out_estimated": 960,
+      "tokens_total_estimated": 53760,
+      "model_equivalent_cost_usd_estimated": 0.005664,
+      "actual_api_cost_usd": 0.0,
+      "code_check_passed": true,
+      "code_check_failures": [],
+      "stopped_by": null,
+      "guardrails_fired": [
+        {
+          "guardrail": "gate_passed",
+          "detail": "issue_decision_letter (autonomy=act)"
+        }
+      ]
+    },
+    "after_restoration": {
+      "decision": "approve_in_principle",
+      "reason": "The claim has been reviewed and the following decisions have been made: the laparoscopic appendicectomy is covered, the lumbar spinal fusion is covered with valid pre-authorization PA-5521, and the cosmetic dermabrasion is excluded due to cosmetic dermatology rules.",
+      "turns": 5,
+      "tool_calls": 9,
+      "tokens_in_estimated": 32400,
+      "tokens_out_estimated": 720,
+      "tokens_total_estimated": 33120,
+      "model_equivalent_cost_usd_estimated": 0.003528,
+      "actual_api_cost_usd": 0.0,
+      "code_check_passed": true,
+      "code_check_failures": [],
+      "stopped_by": null,
+      "guardrails_fired": [
+        {
+          "guardrail": "gate_passed",
+          "detail": "issue_decision_letter (autonomy=act)"
+        }
+      ]
+    },
+    "minus_x_token_ratio_vs_working": 1.623,
+    "complete_evaluation_set": {
+      "restored_configured_cap": {
+        "step_cap": 8,
+        "trials": 109,
+        "passed": 109,
+        "pass_rate": 1.0,
+        "median_turns": 3,
+        "worst_case_turns": 5,
+        "turn_distribution": {
+          "2": 30,
+          "3": 27,
+          "4": 44,
+          "5": 8
+        },
+        "hit_step_cap": 0,
+        "tokens_in_estimated": 2092800,
+        "tokens_out_estimated": 55920,
+        "tokens_total_estimated": 2148720,
+        "model_equivalent_cost_usd_estimated": 0.231648,
+        "actual_api_cost_usd": 0.0
+      },
+      "loose_cap_comparator": {
+        "step_cap": 30,
+        "trials": 109,
+        "passed": 109,
+        "pass_rate": 1.0,
+        "median_turns": 3,
+        "worst_case_turns": 5,
+        "turn_distribution": {
+          "2": 30,
+          "3": 27,
+          "4": 44,
+          "5": 8
+        },
+        "hit_step_cap": 0,
+        "tokens_in_estimated": 2092800,
+        "tokens_out_estimated": 55920,
+        "tokens_total_estimated": 2148720,
+        "model_equivalent_cost_usd_estimated": 0.231648,
+        "actual_api_cost_usd": 0.0
+      },
+      "cap_rationale": "The configured cap of 8 is 3 turns above the longest legitimate scripted run of 5; cap 30 changes no legitimate result and would be too loose to be a meaningful control."
+    },
+    "layer_judgement": {
+      "correct_layer": "code / loop control",
+      "why": "Only deterministic code can remember exact prior actions and identify an identical action at the moment it repeats.",
+      "why_not_prompt": "The model is the component that forgot; a reminder cannot provide an enforceable cross-turn memory guarantee.",
+      "why_not_tool_interface": "The tool call and return are valid; the fault is repeated orchestration, not an ambiguous tool contract."
+    }
+  },
+  "tool_interface_failure": {
+    "failure": "tool_interface_preauthorisation_date_constraint",
+    "case_id": "CLM-8894",
+    "working_agent_minus_x": "required date_of_service validity constraint in get_preauthorisation",
+    "case_facts": {
+      "procedure_code": "29881",
+      "date_of_service": "2026-09-09",
+      "expired_preauthorisation": "PA-5640",
+      "expired_on": "2026-05-31",
+      "expected_decision": "request_document"
+    },
+    "working_agent": {
+      "decision": "request_document",
+      "reason": "PA-5640 ended on 2026-05-31 and does not authorise service on 2026-09-09; request a current pre-authorisation for line 29881.",
+      "preauthorisation_result": null,
+      "turns": 5,
+      "tool_calls": 6,
+      "tokens_in_estimated": 42000,
+      "tokens_out_estimated": 840,
+      "tokens_total_estimated": 42840,
+      "model_equivalent_cost_usd_estimated": 0.004536,
+      "actual_api_cost_usd": 0.0,
+      "code_check_passed": true,
+      "code_check_failures": [],
+      "stopped_by": null,
+      "final_rejections": 1,
+      "rejected_actions": 1
+    },
+    "minus_x": {
+      "decision": "approve_in_principle",
+      "reason": "Line 29881 is covered under PA-5640; approved_total 1950 and refused_total 0.",
+      "preauthorisation_result": {
+        "preauth_id": "PA-5640",
+        "member_id": "M-6118",
+        "procedure_code": "29881",
+        "valid_from": "2026-03-01",
+        "valid_to": "2026-05-31"
+      },
+      "turns": 5,
+      "tool_calls": 7,
+      "tokens_in_estimated": 32400,
+      "tokens_out_estimated": 720,
+      "tokens_total_estimated": 33120,
+      "model_equivalent_cost_usd_estimated": 0.003528,
+      "actual_api_cost_usd": 0.0,
+      "code_check_passed": false,
+      "code_check_failures": [
+        "decision 'approve_in_principle', expected 'request_document'"
+      ],
+      "stopped_by": null,
+      "final_rejections": 0,
+      "rejected_actions": 0
+    },
+    "after_restoration": {
+      "decision": "request_document",
+      "reason": "PA-5640 ended on 2026-05-31 and does not authorise service on 2026-09-09; request a current pre-authorisation for line 29881.",
+      "preauthorisation_result": null,
+      "turns": 5,
+      "tool_calls": 6,
+      "tokens_in_estimated": 42000,
+      "tokens_out_estimated": 840,
+      "tokens_total_estimated": 42840,
+      "model_equivalent_cost_usd_estimated": 0.004536,
+      "actual_api_cost_usd": 0.0,
+      "code_check_passed": true,
+      "code_check_failures": [],
+      "stopped_by": null,
+      "final_rejections": 1,
+      "rejected_actions": 1
+    },
+    "complete_evaluation_set": {
+      "working_agent": {
+        "trials": 109,
+        "passed": 109,
+        "pass_rate": 1.0,
+        "median_turns": 3,
+        "worst_case_turns": 5,
+        "turn_distribution": {
+          "2": 30,
+          "3": 27,
+          "4": 44,
+          "5": 8
+        },
+        "hit_step_cap": 0,
+        "tokens_in_estimated": 2092800,
+        "tokens_out_estimated": 55920,
+        "tokens_total_estimated": 2148720,
+        "model_equivalent_cost_usd_estimated": 0.231648,
+        "actual_api_cost_usd": 0.0,
+        "failures": []
+      },
+      "minus_x": {
+        "trials": 109,
+        "passed": 103,
+        "pass_rate": 0.944954128440367,
+        "median_turns": 3,
+        "worst_case_turns": 5,
+        "turn_distribution": {
+          "2": 30,
+          "3": 27,
+          "4": 44,
+          "5": 8
+        },
+        "hit_step_cap": 0,
+        "tokens_in_estimated": 2265600,
+        "tokens_out_estimated": 58080,
+        "tokens_total_estimated": 2323680,
+        "model_equivalent_cost_usd_estimated": 0.249792,
+        "actual_api_cost_usd": 0.0,
+        "failures": [
+          {
+            "case_id": "CLM-8894",
+            "trial": 1,
+            "decision": "escalate",
+            "stopped_by": "invalid_final_retry_cap",
+            "code_check_failures": [
+              "decision 'escalate', expected 'request_document'"
+            ]
+          },
+          {
+            "case_id": "CLM-8894",
+            "trial": 2,
+            "decision": "escalate",
+            "stopped_by": "invalid_final_retry_cap",
+            "code_check_failures": [
+              "decision 'escalate', expected 'request_document'"
+            ]
+          },
+          {
+            "case_id": "CLM-8894",
+            "trial": 3,
+            "decision": "escalate",
+            "stopped_by": "invalid_final_retry_cap",
+            "code_check_failures": [
+              "decision 'escalate', expected 'request_document'"
+            ]
+          },
+          {
+            "case_id": "CLM-9304",
+            "trial": 1,
+            "decision": "escalate",
+            "stopped_by": "invalid_final_retry_cap",
+            "code_check_failures": [
+              "decision 'escalate', expected 'request_document'"
+            ]
+          },
+          {
+            "case_id": "CLM-9304",
+            "trial": 2,
+            "decision": "escalate",
+            "stopped_by": "invalid_final_retry_cap",
+            "code_check_failures": [
+              "decision 'escalate', expected 'request_document'"
+            ]
+          },
+          {
+            "case_id": "CLM-9304",
+            "trial": 3,
+            "decision": "escalate",
+            "stopped_by": "invalid_final_retry_cap",
+            "code_check_failures": [
+              "decision 'escalate', expected 'request_document'"
+            ]
+          }
+        ]
+      },
+      "after_restoration": {
+        "trials": 109,
+        "passed": 109,
+        "pass_rate": 1.0,
+        "median_turns": 3,
+        "worst_case_turns": 5,
+        "turn_distribution": {
+          "2": 30,
+          "3": 27,
+          "4": 44,
+          "5": 8
+        },
+        "hit_step_cap": 0,
+        "tokens_in_estimated": 2092800,
+        "tokens_out_estimated": 55920,
+        "tokens_total_estimated": 2148720,
+        "model_equivalent_cost_usd_estimated": 0.231648,
+        "actual_api_cost_usd": 0.0,
+        "failures": []
+      }
+    },
+    "layer_judgement": {
+      "correct_layer": "tool interface",
+      "why": "Whether an authorisation covers a supplied service date is deterministic data logic and must be guaranteed once at the source boundary for every caller.",
+      "why_not_prompt": "A prompt would ask each stochastic model to duplicate date validation and to distrust a positive tool result.",
+      "why_not_loop_control": "The run is finite and every action is syntactically valid; step, budget and duplication guards cannot determine whether a pre-authorisation is expired."
+    }
+  }
+}

@@ -18,7 +18,8 @@ Then work in the modules.
 cd A2_scaffold
 python3 run_eval.py REF-5602          # one case, every turn shown
 python3 run_eval.py                   # the scripted cases, graded
-python3 demo_loop_failure.py          # the D7 method, worked once
+python3 demo_loop_failure.py          # D7 failure 1: loop-control ablation
+python3 demo_tool_failure.py          # D7 failure 2: tool-interface ablation
 python3 run_eval.py --prompt          # exactly what the model is told
 
 python3 run_eval.py CLM-8842          # Problem A, once PROBLEM = "A" in config.py
@@ -52,7 +53,9 @@ rather than guessing.
 | `harness.py` | Load, run, code check, judgement queue, report | Some |
 | `prompt.py` | Assembles the descriptors + routing rules into the text the model is sent | **Yes** — this is D2(b) |
 | `run_eval.py` | Entry point. **This is what a marker runs** | Rarely |
-| `demo_loop_failure.py` | D7's method, worked once on the scripted backend | Copy the method |
+| `demo_loop_failure.py` | D7 failure 1: action de-duplication ablation plus whole-set turn distribution | Yes — keep the evidence |
+| `demo_tool_failure.py` | D7 failure 2: pre-authorisation date-contract ablation | Yes — keep the evidence |
+| `d7_results.json` | Reproducible before/minus-X/restored evidence written by the two D7 scripts | Generated — commit it |
 | `A2_Scaffold_Tour_ProblemA.ipynb` | Guided walk-through of one claim, `CLM-8842` | Read once |
 | `A2_Scaffold_Tour_ProblemB.ipynb` | Guided walk-through of one referral, `REF-5602` | Read once |
 
@@ -181,6 +184,32 @@ Left undone on purpose. Doing them is the assignment.
 ---
 
 ## Before you submit
+
+### Reproduce D7 without an API key
+
+Both D7 experiments force the scripted backend internally, even if `config.py`
+is temporarily set to `live`. They make no network calls and do not overwrite
+`results.json` or any `results_live_*.json` file.
+
+```bash
+cd A2_scaffold
+python3 demo_loop_failure.py
+python3 demo_tool_failure.py
+```
+
+Run both commands in that order. Each command updates its own section of
+`d7_results.json`, so the final file contains both controlled ablations:
+
+- **Loop control:** normal run, repeated action caught by the guard, the same
+  repeated action with de-duplication deleted, restoration, whole-set turn
+  distribution, and cap-8 versus cap-30 evidence.
+- **Tool interface:** `CLM-8894` with the required service-date constraint,
+  the same run with that constraint deleted, restoration, and the whole-set
+  pass-rate effect.
+
+The scripted backend's token counts and costs in this file are deterministic
+estimates used for the D7 before/after comparison; actual API cost is zero.
+Use the measured token usage in `results_live_*.json` for D5/D6 cost claims.
 
 - `python3 run_eval.py` works **in a fresh clone**, on a machine with no key. Test
   it that way — "works on my laptop" has caught out every cohort.

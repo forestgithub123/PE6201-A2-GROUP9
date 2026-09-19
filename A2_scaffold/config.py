@@ -26,7 +26,7 @@ import os
 # ─────────────────────────────────────────────────────────────────────
 BACKEND = "live"          # "scripted" | "live"
 
-MODEL = "openai/gpt-4o-mini"  # only used when BACKEND == "live"
+MODEL = "qwen/qwen3.8-max"  # only used when BACKEND == "live"
 BASE_URL = "https://openrouter.ai/api/v1"
 
 # Live request controls. A bounded JSON move should never need thousands of
@@ -53,7 +53,7 @@ PROBLEM = "A"
 # ─────────────────────────────────────────────────────────────────────
 MAX_TURNS = 8                 # step cap
 MAX_TOKENS_PER_RUN = 60000    # budget ceiling
-AUTONOMY = "confirm"          # "suggest" | "confirm" | "act"
+AUTONOMY = "act"              # "suggest" | "confirm" | "act"
 #   suggest  - the agent proposes; a human does everything
 #   confirm  - the agent does everything EXCEPT the irreversible step,
 #              which waits for a yes. THE GATE GOES IN FRONT OF THE

@@ -26,6 +26,7 @@ moves is how you test the parts you wrote.
 ====================================================================
 """
 import json
+import os
 import socket
 import time
 import urllib.error
@@ -175,6 +176,23 @@ SCRIPTS = {
 }
 
 
+def _load_recorded_scripts():
+    """Load recorded model moves for deterministic offline replay."""
+    path = os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                        "scripted_cases_A.json")
+    if not os.path.exists(path):
+        return {}
+    with open(path, encoding="utf-8") as handle:
+        payload = json.load(handle)
+    scripts = payload.get("scripts", payload) if isinstance(payload, dict) else {}
+    if not isinstance(scripts, dict):
+        raise SystemExit("scripted_cases_A.json must contain a scripts object")
+    return scripts
+
+
+SCRIPTS.update(_load_recorded_scripts())
+
+
 class ScriptedBackend:
     """Replays SCRIPTS[case_id]. Deterministic, free, offline."""
 
@@ -249,9 +267,18 @@ class LiveBackend:
 def _parse_move(text):
     """The model must answer in JSON. Anything else is a run you cannot
     grade, so say so loudly rather than guessing."""
+    if not isinstance(text, (str, bytes, bytearray)):
+        # OpenRouter can return message.content=null when a model stops after
+        # hidden reasoning, hits its output limit, or is blocked by a provider
+        # policy.  Calling json.loads(None) masks that useful diagnosis with a
+        # misleading TypeError.
+        detail = "empty model content (%s)" % type(text).__name__
+        return {"final": {"decision": "escalate",
+                          "reason": "model returned no JSON content: %s" % detail},
+                "thought": detail}
     try:
         return json.loads(text)
-    except json.JSONDecodeError:
+    except (json.JSONDecodeError, TypeError):
         return {"final": {"decision": "escalate",
                           "reason": "model did not return parseable JSON"},
                 "thought": "unparseable: %s" % text[:200]}
@@ -291,8 +318,19 @@ def _live_call(messages):
                 payload = json.load(r)
             break
         except urllib.error.HTTPError as error:
+            # urllib's default exception text drops the provider response,
+            # even though OpenRouter puts the actionable reason there (for
+            # example an unknown model id or an unsupported request option).
+            try:
+                error_body = error.read().decode("utf-8", errors="replace")
+            except Exception:
+                error_body = ""
             if error.code not in (408, 429) and not 500 <= error.code < 600:
-                raise
+                detail = error_body.strip() or str(error.reason)
+                raise LiveBackendError(
+                    "live API rejected model %r with HTTP %d: %s"
+                    % (config.MODEL, error.code, detail)
+                ) from error
             last_error = error
         except (TimeoutError, socket.timeout, urllib.error.URLError) as error:
             last_error = error
@@ -304,10 +342,35 @@ def _live_call(messages):
             "live API failed after 3 attempts: %s" % last_error
         ) from last_error
 
+    choices = payload.get("choices") or []
+    if not choices:
+        raise LiveBackendError(
+            "live API returned no choices for model %r: %s"
+            % (config.MODEL, json.dumps(payload, ensure_ascii=False)[:1000])
+        )
+    choice = choices[0] or {}
+    message = choice.get("message") or {}
+    content = message.get("content")
+    if content is None:
+        # Preserve the provider metadata that explains why no final answer
+        # was produced (usually finish_reason=length/content_filter).  This
+        # is much more actionable than json.loads(None)'s TypeError.
+        metadata = {
+            "finish_reason": choice.get("finish_reason"),
+            "message_keys": sorted(message),
+        }
+        for key in ("refusal", "reasoning", "tool_calls"):
+            if message.get(key) is not None:
+                metadata[key] = message[key]
+        raise LiveBackendError(
+            "model %r returned no message content: %s"
+            % (config.MODEL, json.dumps(metadata, ensure_ascii=False)[:2000])
+        )
+
     usage = payload.get("usage") or {}
     tokens_in = usage.get("prompt_tokens", usage.get("input_tokens", 0))
     tokens_out = usage.get("completion_tokens", usage.get("output_tokens", 0))
-    return payload["choices"][0]["message"]["content"], (tokens_in, tokens_out)
+    return content, (tokens_in, tokens_out)
 
 
 def make_backend(case_id, tool_descriptors=None, system_prompt=""):

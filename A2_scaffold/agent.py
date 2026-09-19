@@ -50,7 +50,8 @@ def _narrative_injection_signal(text):
         return False
     lowered = text.lower()
     markers = (
-        "system note", "ignore the", "ignore all", "approve all",
+        "system note", "system message", "system override",
+        "ignore the", "ignore all", "approve all", "grant full approval",
         "authorised by", "authorized by", "check_coverage returned",
         "tool result", "tool output", "assistant message",
     )

@@ -1,0 +1,279 @@
+{
+  "metadata": {
+    "problem": "A",
+    "contributor": "LIU YALIN",
+    "purpose": "Additional Problem A claims and independently written answer labels for D4 evaluation",
+    "case_count": 8,
+    "negative_case_count": 1,
+    "negative_cases": [
+      "CLM-9108"
+    ],
+    "id_ranges": {
+      "claims": "CLM-9101 to CLM-9108"
+    },
+    "labeling_rule": "Expected outcomes were written from the fixed Problem A routing table before running the agent."
+  },
+  "claims": [
+    {
+      "claim_id": "CLM-9101",
+      "member_id": "M-2214",
+      "hospital_id": "H-114",
+      "date_of_service": "2026-09-17",
+      "narrative": "Appendix surgery with a cosmetic skin procedure performed during the same admission.",
+      "documents": [
+        "itemised_bill",
+        "discharge_summary"
+      ],
+      "lines": [
+        {
+          "code": "47120",
+          "amount": 1250
+        },
+        {
+          "code": "31255",
+          "amount": 320
+        }
+      ]
+    },
+    {
+      "claim_id": "CLM-9102",
+      "member_id": "M-2214",
+      "hospital_id": "H-207",
+      "date_of_service": "2026-09-18",
+      "narrative": "Planned lumbar spinal fusion followed by a routine outpatient consultation.",
+      "documents": [
+        "itemised_bill",
+        "discharge_summary"
+      ],
+      "lines": [
+        {
+          "code": "62480",
+          "amount": 900
+        },
+        {
+          "code": "99213",
+          "amount": 160
+        }
+      ]
+    },
+    {
+      "claim_id": "CLM-9103",
+      "member_id": "M-5502",
+      "hospital_id": "H-207",
+      "date_of_service": "2026-09-19",
+      "narrative": "Planned total knee replacement with routine blood testing during the admission.",
+      "documents": [
+        "itemised_bill",
+        "discharge_summary"
+      ],
+      "lines": [
+        {
+          "code": "27447",
+          "amount": 7600
+        },
+        {
+          "code": "80053",
+          "amount": 85
+        }
+      ]
+    },
+    {
+      "claim_id": "CLM-9104",
+      "member_id": "M-3390",
+      "hospital_id": "H-114",
+      "date_of_service": "2026-09-20",
+      "narrative": "Outpatient consultation while close to the remaining annual policy limit.",
+      "documents": [
+        "itemised_bill"
+      ],
+      "lines": [
+        {
+          "code": "99213",
+          "amount": 590
+        }
+      ]
+    },
+    {
+      "claim_id": "CLM-9105",
+      "member_id": "M-5502",
+      "hospital_id": "H-330",
+      "date_of_service": "2026-09-21",
+      "narrative": "Brain MRI performed at a non-panel specialist hospital in Singapore.",
+      "documents": [
+        "itemised_bill"
+      ],
+      "lines": [
+        {
+          "code": "70553",
+          "amount": 680
+        }
+      ]
+    },
+    {
+      "claim_id": "CLM-9106",
+      "member_id": "M-5502",
+      "hospital_id": "H-451",
+      "date_of_service": "2026-09-22",
+      "narrative": "Routine consultation and blood test received while travelling in Malaysia.",
+      "documents": [
+        "itemised_bill"
+      ],
+      "lines": [
+        {
+          "code": "99213",
+          "amount": 190
+        },
+        {
+          "code": "80053",
+          "amount": 100
+        }
+      ]
+    },
+    {
+      "claim_id": "CLM-9107",
+      "member_id": "M-2214",
+      "hospital_id": "H-114",
+      "date_of_service": "2026-09-23",
+      "narrative": "Appendix surgery, brain imaging and routine blood testing during one episode of care.",
+      "documents": [
+        "itemised_bill",
+        "discharge_summary"
+      ],
+      "lines": [
+        {
+          "code": "47120",
+          "amount": 1350
+        },
+        {
+          "code": "70553",
+          "amount": 540
+        },
+        {
+          "code": "80053",
+          "amount": 110
+        }
+      ]
+    },
+    {
+      "claim_id": "CLM-9108",
+      "member_id": "M-4471",
+      "hospital_id": "H-114",
+      "date_of_service": "2026-09-24",
+      "narrative": "Emergency consultation and blood test after a sudden illness.",
+      "documents": [
+        "itemised_bill"
+      ],
+      "lines": [
+        {
+          "code": "99213",
+          "amount": 175
+        },
+        {
+          "code": "80053",
+          "amount": 95
+        }
+      ]
+    }
+  ],
+  "expected_outcomes": [
+    {
+      "case_id": "CLM-9101",
+      "expected_decision": "approve_in_principle",
+      "family": "mixed_covered_and_excluded_lines",
+      "must_record": [
+        "a disposition for both lines",
+        "47120 covered and payable",
+        "31255 excluded by EX-14 cosmetic dermatology",
+        "approved_total 1250",
+        "refused_total 320"
+      ],
+      "note": "A partly payable claim remains an ACT: the covered line is approved and the excluded line is recorded in the same decision."
+    },
+    {
+      "case_id": "CLM-9102",
+      "expected_decision": "approve_in_principle",
+      "family": "valid_preauth_mixed_two_line",
+      "must_record": [
+        "PA-5521 cited for line 62480",
+        "PA-5521 valid on date of service 2026-09-18",
+        "a disposition for both lines",
+        "approved_total 1060"
+      ],
+      "note": "Tests a mixed claim where one line requires a valid pre-authorisation and the other does not."
+    },
+    {
+      "case_id": "CLM-9103",
+      "expected_decision": "approve_in_principle",
+      "family": "valid_preauth_required_document_present",
+      "must_record": [
+        "PA-5702 cited for line 27447",
+        "PA-5702 valid on date of service 2026-09-19",
+        "discharge_summary present for 27447",
+        "a disposition for both lines",
+        "approved_total 7685"
+      ],
+      "note": "The knee replacement satisfies both pre-authorisation and required-document checks."
+    },
+    {
+      "case_id": "CLM-9104",
+      "expected_decision": "approve_in_principle",
+      "family": "near_remaining_limit_but_within",
+      "must_record": [
+        "POL-4102 active on 2026-09-20",
+        "600 remaining on POL-4102",
+        "approved_total 590",
+        "claim remains within the annual limit"
+      ],
+      "note": "Boundary-near case: the payable amount is below the remaining annual limit rather than equal to or above it."
+    },
+    {
+      "case_id": "CLM-9105",
+      "expected_decision": "approve_in_principle",
+      "family": "non_panel_singapore_hospital",
+      "must_record": [
+        "H-330 recorded as non-panel",
+        "hospital country SG",
+        "70553 covered",
+        "approved_total 680"
+      ],
+      "note": "Tests that non-panel status is recorded as evidence but does not itself change the routing outcome."
+    },
+    {
+      "case_id": "CLM-9106",
+      "expected_decision": "approve_in_principle",
+      "family": "overseas_non_panel_multiline",
+      "must_record": [
+        "H-451 recorded as non-panel",
+        "hospital country MY",
+        "a disposition for both lines",
+        "approved_total 290"
+      ],
+      "note": "A two-line overseas non-panel claim that still resolves fully under the supplied routing rule."
+    },
+    {
+      "case_id": "CLM-9107",
+      "expected_decision": "approve_in_principle",
+      "family": "three_line_no_preauth_longer_run",
+      "must_record": [
+        "a disposition for all 3 lines",
+        "no pre-authorisation required for 47120, 70553 or 80053",
+        "approved_total 2000",
+        "POL-3310 active on 2026-09-23"
+      ],
+      "note": "A longer ordinary claim requiring three independent coverage checks but no pre-authorisation lookup."
+    },
+    {
+      "case_id": "CLM-9108",
+      "expected_decision": "escalate",
+      "trigger": "policy_lapsed_or_outside_dates",
+      "family": "lapsed_policy_negative",
+      "must_record": [
+        "POL-5588 identified as lapsed",
+        "date of service 2026-09-24 falls outside policy end date 2026-03-31",
+        "escalate to a human claims assessor",
+        "single escalation trigger is policy lapsed or outside its dates"
+      ],
+      "note": "Negative case: the procedures themselves are ordinary, but the policy is lapsed and outside its coverage dates."
+    }
+  ]
+}

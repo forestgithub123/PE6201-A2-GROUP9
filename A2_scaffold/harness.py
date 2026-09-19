@@ -296,6 +296,8 @@ def _is_negative(expected):
 def report(results):
     """The result table. EVERY pass rate is printed with its trial count,
     because a pass rate without one is not a measurement."""
+    _print_final_results(results)
+
     total = len(results)
     passed = sum(1 for r in results if r["passed"])
     turns = [r["record"]["turns"] for r in results]
@@ -337,3 +339,39 @@ def report(results):
             "pass_rate": passed / total if total else 0.0,
             "median_turns": statistics.median(turns) if turns else None,
             "cost_usd": cost}
+
+
+def _print_final_results(results):
+    """Print one deterministic final result per case before the aggregate.
+
+    Negative cases have three trials. Their individual pass/fail status is
+    summarised on one line while the first trial supplies the displayed final
+    record; on the scripted backend all three replays are identical.
+    """
+    grouped = {}
+    for row in results:
+        grouped.setdefault(row["case_id"], []).append(row)
+
+    print()
+    print("=" * 68)
+    print("  FINAL RESULTS - one final decision record per case")
+    print("=" * 68)
+    for case_id, rows in grouped.items():
+        record = rows[0]["record"]
+        details = []
+        if record.get("trigger"):
+            details.append("trigger=%s" % record["trigger"])
+        if record.get("missing"):
+            details.append("missing=%s" % record["missing"])
+        if record.get("approved_total") is not None:
+            details.append("approved=%s" % record["approved_total"])
+        if record.get("refused_total") is not None:
+            details.append("refused=%s" % record["refused_total"])
+        passed = sum(1 for row in rows if row["passed"])
+        details.append("code_check=%d/%d" % (passed, len(rows)))
+        details.append("turns=%s" % record.get("turns", "-"))
+        print("  %-10s %-22s %s" % (
+            case_id,
+            record.get("decision", "<no decision>"),
+            " | ".join(details),
+        ))

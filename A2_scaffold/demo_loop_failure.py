@@ -1,137 +1,272 @@
 #!/usr/bin/env python3
 """
-PE6201 · A2 scaffold — D7 WORKED EXAMPLE: the loop failure
+PE6201 · A2 — D7 FAILURE 1: loop-control ablation
 ====================================================================
     python3 demo_loop_failure.py
 
-This is the shape D7 asks for, done once so you can copy the method.
+This is a controlled "working agent minus X" experiment. X is the
+action de-duplication check in Guardrails.check_duplicate. The script:
 
-D7 requires each failure to be built as a DELETION FROM YOUR WORKING
-AGENT - "the working agent, minus X" - not as a separately written bad
-agent. Putting X back must recover the behaviour. That is what makes it
-a diagnosis rather than a story.
+  1. runs the working CLM-8842 agent;
+  2. injects a repeated model action while the guard is present, proving
+     that the guard identifies the exact fault and stops loudly;
+  3. repeats the same behaviour with only the guard removed;
+  4. restores the guard and the working script; and
+  5. runs the complete evaluation set with the real cap and a loose cap.
 
-Here X is ACTION DE-DUPLICATION. Everything else is untouched.
-
-WHAT YOU SHOULD NOTICE: with the guard deleted the run does not crash.
-No exception. No error. It repeats a call it already made, burns turns
-and tokens - AND STILL RETURNS THE RIGHT ANSWER. A pass-rate table
-would show it as a clean pass. Neither the step cap nor the budget
-ceiling fires, because neither is breached: they bound the damage, they
-do not detect the fault.
-
-You only ever see this IF YOU ARE COUNTING. That is why instrumentation
-is a requirement and not a nicety, and it is the whole lesson of D7.
-
-Everything below runs on the SCRIPTED backend, so it costs nothing and
-reproduces exactly. D7 needs no API key.
+The experiment always forces the SCRIPTED backend. It uses no API key,
+does not call the network, and does not overwrite results.json or any
+results_live_*.json file. It updates only d7_results.json.
 ====================================================================
 """
 import copy
+import json
+import os
+import statistics
+from collections import Counter
 
 import backends
 import config
 from agent import run_case
 from guardrails import Guardrails
-
-# Works for either problem. The default follows config.PROBLEM.
-CASES = {"B": "REF-5602", "A": "CLM-8842"}
+from harness import code_check, load_cases, load_key, run_set
 
 
-def _looping_script(CASE):
-    """The working script, with one call repeated - a model that has
-    forgotten it already asked. This is the observable behaviour; the
-    deletion below is what lets it continue."""
-    steps = copy.deepcopy(backends.SCRIPTS[CASE])
-    repeat = copy.deepcopy(steps[1])          # ask the same thing again
-    repeat["thought"] = "Let me check the criteria again to be sure."
-    return steps[:2] + [repeat, repeat] + steps[2:]
+CASE_ID = "CLM-8842"
+PROBLEM = "A"
+RESULTS_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                            "d7_results.json")
 
 
-def main(case=None, problem=None):
-    problem = problem or config.PROBLEM
-    CASE = case or CASES[problem]
+def _looping_script(case_id):
+    """Return the working script with the initial retrieval repeated.
 
-    print()
-    print(config.summary())
-    print("  demonstrating on %s (Problem %s)" % (CASE, problem))
-    print()
-    original = backends.SCRIPTS[CASE]
+    This is the model-side behaviour that exposes the loop-control fault. It
+    is identical in the guarded and unguarded conditions; only X changes.
+    Re-reading get_claim does not alter the eventual business evidence, so a
+    decision-only pass-rate table remains blind to the wasted work.
+    """
+    steps = copy.deepcopy(backends.SCRIPTS[case_id])
+    repeat = copy.deepcopy(steps[0])
+    repeat["thought"] = (
+        "I have forgotten that I already fetched this claim; read it again."
+    )
+    return steps[:1] + [repeat, repeat] + steps[1:]
 
-    # ---- BEFORE: the working agent ----------------------------------
-    before = run_case(CASE, problem=problem)
-    print("BEFORE - the working agent, guard in place")
-    print("  turns %d · tool calls %d · tokens %d · cost US$%.5f · decision %s"
-          % (before["turns"], len(before["evidence"]),
-             before["tokens_in"] + before["tokens_out"],
-             before["cost_usd"], before["decision"]))
 
-    # ---- AFTER: the same agent, MINUS the de-duplication guard ------
-    backends.SCRIPTS[CASE] = _looping_script(CASE)
-    real_check = Guardrails.check_duplicate
-    Guardrails.check_duplicate = lambda self, tool, args: None   # <- the deletion
+def _run_metrics(record, expected):
+    passed, failures = code_check(record, expected)
+    return {
+        "decision": record.get("decision"),
+        "reason": record.get("reason"),
+        "turns": record.get("turns"),
+        "tool_calls": len(record.get("evidence") or []),
+        "tokens_in_estimated": record.get("tokens_in", 0),
+        "tokens_out_estimated": record.get("tokens_out", 0),
+        "tokens_total_estimated": (
+            record.get("tokens_in", 0) + record.get("tokens_out", 0)
+        ),
+        "model_equivalent_cost_usd_estimated": record.get("cost_usd", 0),
+        "actual_api_cost_usd": 0.0,
+        "code_check_passed": passed,
+        "code_check_failures": failures,
+        "stopped_by": record.get("stopped_by"),
+        "guardrails_fired": record.get("guardrails_fired") or [],
+    }
+
+
+def _suite_metrics(results, cap):
+    records = [row["record"] for row in results]
+    turns = [record["turns"] for record in records]
+    distribution = Counter(turns)
+    passed = sum(1 for row in results if row["passed"])
+    return {
+        "step_cap": cap,
+        "trials": len(results),
+        "passed": passed,
+        "pass_rate": passed / len(results) if results else 0.0,
+        "median_turns": statistics.median(turns) if turns else None,
+        "worst_case_turns": max(turns) if turns else None,
+        "turn_distribution": {
+            str(turn): distribution[turn] for turn in sorted(distribution)
+        },
+        "hit_step_cap": sum(
+            record.get("stopped_by") == "step_cap" for record in records
+        ),
+        "tokens_in_estimated": sum(record["tokens_in"] for record in records),
+        "tokens_out_estimated": sum(record["tokens_out"] for record in records),
+        "tokens_total_estimated": sum(
+            record["tokens_in"] + record["tokens_out"] for record in records
+        ),
+        "model_equivalent_cost_usd_estimated": round(
+            sum(record["cost_usd"] for record in records), 6
+        ),
+        "actual_api_cost_usd": 0.0,
+    }
+
+
+def _read_results():
+    if not os.path.exists(RESULTS_PATH):
+        return {
+            "backend": "scripted",
+            "actual_api_cost_usd": 0.0,
+            "measurement_note": (
+                "Scripted token counts and model-equivalent costs are "
+                "deterministic estimates, not measured API usage."
+            ),
+        }
+    with open(RESULTS_PATH, encoding="utf-8") as handle:
+        payload = json.load(handle)
+    if not isinstance(payload, dict):
+        raise ValueError("d7_results.json must contain a JSON object")
+    return payload
+
+
+def _write_results(payload):
+    with open(RESULTS_PATH, "w", encoding="utf-8") as handle:
+        json.dump(payload, handle, indent=2, ensure_ascii=False)
+        handle.write("\n")
+
+
+def run_experiment(write_results=True):
+    original_backend = config.BACKEND
+    original_problem = config.PROBLEM
+    original_cap = config.MAX_TURNS
+    original_script = backends.SCRIPTS[CASE_ID]
+    real_duplicate_check = Guardrails.check_duplicate
+    expected = load_key(PROBLEM)[CASE_ID]
+
+    config.BACKEND = "scripted"
+    config.PROBLEM = PROBLEM
+
     try:
-        after = run_case(CASE, problem=problem)
+        # 1. Normal behaviour with the complete working agent.
+        baseline = run_case(CASE_ID, problem=PROBLEM)
+
+        # 2. The faulty model behaviour is held constant. With X present,
+        #    the repeated action is identified and stopped explicitly.
+        backends.SCRIPTS[CASE_ID] = _looping_script(CASE_ID)
+        fault_caught = run_case(CASE_ID, problem=PROBLEM)
+
+        # 3. Delete only X. The same repeated behaviour now continues,
+        #    spends more, raises no exception and still reaches the answer.
+        Guardrails.check_duplicate = lambda self, tool, args: None
+        minus_x = run_case(CASE_ID, problem=PROBLEM)
+
+        # 4. Put X and the working script back before the restoration run.
+        Guardrails.check_duplicate = real_duplicate_check
+        backends.SCRIPTS[CASE_ID] = original_script
+        restored = run_case(CASE_ID, problem=PROBLEM)
+
+        # 5. Whole-set evidence for the cap. Cap 30 is the loose-control
+        #    comparator; cap 8 is the configured control being defended.
+        config.MAX_TURNS = original_cap
+        restored_results, _ = run_set(load_cases(PROBLEM), problem=PROBLEM)
+        restored_suite = _suite_metrics(restored_results, original_cap)
+
+        config.MAX_TURNS = 30
+        loose_results, _ = run_set(load_cases(PROBLEM), problem=PROBLEM)
+        loose_suite = _suite_metrics(loose_results, 30)
     finally:
-        Guardrails.check_duplicate = real_check                  # <- put it back
-        backends.SCRIPTS[CASE] = original
+        Guardrails.check_duplicate = real_duplicate_check
+        backends.SCRIPTS[CASE_ID] = original_script
+        config.MAX_TURNS = original_cap
+        config.PROBLEM = original_problem
+        config.BACKEND = original_backend
 
-    print()
-    print("AFTER - the working agent MINUS action de-duplication")
-    print("  turns %d · tool calls %d · tokens %d · cost US$%.5f · decision %s"
-          % (after["turns"], len(after["evidence"]),
-             after["tokens_in"] + after["tokens_out"],
-             after["cost_usd"], after["decision"]))
-    print("  stopped by: %s" % after["stopped_by"])
+    baseline_metrics = _run_metrics(baseline, expected)
+    caught_metrics = _run_metrics(fault_caught, expected)
+    minus_metrics = _run_metrics(minus_x, expected)
+    restored_metrics = _run_metrics(restored, expected)
+    spend_ratio = (
+        minus_metrics["tokens_total_estimated"]
+        / max(1, baseline_metrics["tokens_total_estimated"])
+    )
 
-    # ---- the four things D7 asks you to report ----------------------
-    spend = (after["tokens_in"] + after["tokens_out"]) / \
-            max(1, before["tokens_in"] + before["tokens_out"])
+    evidence = {
+        "failure": "loop_control_duplicate_action",
+        "case_id": CASE_ID,
+        "working_agent_minus_x": (
+            "Guardrails.check_duplicate action-memory check"
+        ),
+        "monitoring_that_detected_it": [
+            "per-run turns",
+            "per-run token estimate",
+            "per-run model-equivalent cost estimate",
+            "tool trace",
+            "stopped_by and guardrails_fired",
+        ],
+        "working_agent": baseline_metrics,
+        "fault_injected_guard_present": caught_metrics,
+        "minus_x": minus_metrics,
+        "after_restoration": restored_metrics,
+        "minus_x_token_ratio_vs_working": round(spend_ratio, 3),
+        "complete_evaluation_set": {
+            "restored_configured_cap": restored_suite,
+            "loose_cap_comparator": loose_suite,
+            "cap_rationale": (
+                "The configured cap of %d is %d turns above the longest "
+                "legitimate scripted run of %d; cap 30 changes no legitimate "
+                "result and would be too loose to be a meaningful control."
+                % (original_cap,
+                   original_cap - restored_suite["worst_case_turns"],
+                   restored_suite["worst_case_turns"])
+            ),
+        },
+        "layer_judgement": {
+            "correct_layer": "code / loop control",
+            "why": (
+                "Only deterministic code can remember exact prior actions "
+                "and identify an identical action at the moment it repeats."
+            ),
+            "why_not_prompt": (
+                "The model is the component that forgot; a reminder cannot "
+                "provide an enforceable cross-turn memory guarantee."
+            ),
+            "why_not_tool_interface": (
+                "The tool call and return are valid; the fault is repeated "
+                "orchestration, not an ambiguous tool contract."
+            ),
+        },
+    }
+
+    if write_results:
+        payload = _read_results()
+        payload["loop_control_failure"] = evidence
+        _write_results(payload)
+    return evidence
+
+
+def _print_run(label, metrics):
+    print("  %-31s turns=%s  calls=%s  tokens(est.)=%s  est.cost=US$%.6f"
+          % (label, metrics["turns"], metrics["tool_calls"],
+             metrics["tokens_total_estimated"],
+             metrics["model_equivalent_cost_usd_estimated"]))
+    print("  %-31s decision=%s  pass=%s  stopped_by=%s"
+          % ("", metrics["decision"], metrics["code_check_passed"],
+             metrics["stopped_by"]))
+
+
+def main():
+    evidence = run_experiment(write_results=True)
     print()
+    print("D7 FAILURE 1 — LOOP CONTROL (scripted, no API cost)")
     print("=" * 68)
-    print("  1 · THE INSTRUMENTATION THAT FOUND IT")
-    print("      turns and cost logged per run. NOTHING RAISED AN EXCEPTION.")
-    print("      The run cost %.1fx more and still answered %r"
-          % (spend, after["decision"]))
-    if after["decision"] == before["decision"]:
-        print("      - THE SAME ANSWER AS THE WORKING AGENT. A pass-rate table")
-        print("      alone would show this run as a clean pass. It is only")
-        print("      visible because turns and cost were counted.")
-    print("  2 · THE TURN DISTRIBUTION")
-    print("      before: %d turns   after: %d turns   cap: %d"
-          % (before["turns"], after["turns"], config.MAX_TURNS))
-    print("      runs that hit the cap: %d of 2"
-          % sum(1 for r in (before, after) if r["stopped_by"] == "step_cap"))
-    print("  3 · THE FIX, AND WHY THE OTHER TWO LAYERS WERE WRONG")
-    print("      Action de-duplication caught it, in the CODE layer.")
-    # Say what ACTUALLY happened, not what sounds right. On this data the
-    # other two guards did not fire at all - which is the stronger lesson.
-    if after["stopped_by"] != "step_cap":
-        print("      The STEP CAP never fired: the loop finished at %d turns,"
-              % after["turns"])
-        print("      inside the cap of %d. A cap bounds the damage; it does not"
-              % config.MAX_TURNS)
-        print("      detect this. Raise the repeat count and it would - later,")
-        print("      and still without naming the cause.")
-    else:
-        print("      The step cap DID stop it, at %d turns - later than the"
-              % after["turns"])
-        print("      de-duplication guard, and without naming the cause.")
-    print("      The BUDGET CEILING never fired either: %d tokens against a"
-          % (after["tokens_in"] + after["tokens_out"]))
-    print("      ceiling of %d." % config.MAX_TOKENS_PER_RUN)
-    print("      A PROMPT fix cannot be relied on - the model is the thing")
-    print("      that forgot. Only the code layer remembers.")
-    print("  4 · BEFORE AND AFTER")
-    print("      pass rate must not fall when the guard is restored - a cap")
-    print("      that also truncates legitimate long runs has traded one")
-    print("      failure for another. Check it on your whole set, not one case.")
-    print("=" * 68)
+    _print_run("working agent", evidence["working_agent"])
+    _print_run("fault + guard present",
+               evidence["fault_injected_guard_present"])
+    _print_run("working agent minus X", evidence["minus_x"])
+    _print_run("after restoration", evidence["after_restoration"])
     print()
-    print("  Now do this for YOUR second failure, in the TOOL INTERFACE or")
-    print("  the PROMPT - not loop control again. State which layer the fix")
-    print("  belongs in and why the other two were the wrong place. That")
-    print("  judgement is most of the mark.")
+    suite = evidence["complete_evaluation_set"]["restored_configured_cap"]
+    print("  complete set: %d/%d passed; median=%s; worst=%s; cap hits=%s"
+          % (suite["passed"], suite["trials"], suite["median_turns"],
+             suite["worst_case_turns"], suite["hit_step_cap"]))
+    print("  turn distribution:", suite["turn_distribution"])
+    print("  token ratio, minus X / working: %.3fx"
+          % evidence["minus_x_token_ratio_vs_working"])
+    print("  actual API cost: US$0.000000 (scripted backend)")
+    print("  evidence written to %s" % RESULTS_PATH)
     print()
 
 

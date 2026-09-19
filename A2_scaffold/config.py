@@ -24,7 +24,7 @@ import os
 # ─────────────────────────────────────────────────────────────────────
 # THE THREE STRINGS. Change these, change nothing else.
 # ─────────────────────────────────────────────────────────────────────
-BACKEND = "live"          # "scripted" | "live"
+BACKEND = "scripted"          # "scripted" | "live"
 
 MODEL = "openai/gpt-4o-mini"  # only used when BACKEND == "live"
 BASE_URL = "https://openrouter.ai/api/v1"

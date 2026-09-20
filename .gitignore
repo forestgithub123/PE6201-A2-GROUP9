@@ -1,4 +1,19 @@
 # Local OS, Python, and Office temporary files
 .DS_Store
 __pycache__/
+*.py[cod]
 ~$*
+
+# Local document-build scripts, extracted text, and render previews
+/tmp/
+
+# Original download snapshots; the expanded, versioned folders are canonical
+/A2_reference_data.zip
+/A2_scaffold.zip
+
+# Generated local demo output
+/A2_scaffold/demo_escalation_log.json
+
+# Duplicate report exports; keep the canonical copies under output/
+/PE6201_A2_D6_FinalOutput.xlsx
+/Problem A Live Model Battery Results and Analysis.docx

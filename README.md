@@ -10,9 +10,15 @@ This project is under active development.
   evaluation harness, and guided notebooks.
 - `A2_reference_data/`: reference JSON data, expected outcomes, fixture
   generators, and data validation utilities.
-- `documents/`: assignment briefs and team working documents.
+- `model_trace/`: measured live-model result records used by the report.
+- `output/`: canonical report and cost-model deliverables.
+- `documents/`: assignment briefs, declaration, self-appraisal, and team
+  working documents.
 - `流程.md`: implementation notes and workflow analysis.
-- `A2_scaffold.zip` and `A2_reference_data.zip`: original packaged materials.
+
+Downloaded zip snapshots, temporary render files, and duplicate root-level
+exports are intentionally excluded from version control. The expanded folders
+and canonical files under `output/` are the maintained copies.
 
 ## Run locally
 

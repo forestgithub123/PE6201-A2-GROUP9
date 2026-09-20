@@ -7,6 +7,11 @@ __pycache__/
 # Local document-build scripts, extracted text, and render previews
 /tmp/
 
+# Assignment references and internal team working notes
+/documents/
+/流程.md
+/数据集编写教程.md
+
 # Original download snapshots; the expanded, versioned folders are canonical
 /A2_reference_data.zip
 /A2_scaffold.zip
